@@ -3716,7 +3716,7 @@ wheels = [
 
 [[package]]
 name = "ogx"
-version = "1.0.0+rhaiv.0"
+version = "1.0.1+rhaiv.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },
