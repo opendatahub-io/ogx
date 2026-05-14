@@ -31,7 +31,7 @@ constraint-dependencies = [
 
 [project]
 name = "ogx"
-version = "1.0.1+rhaiv.0"
+version = "1.0.2+rhaiv.0"
 authors = [{ name = "The OGX Contributors", email = "contributors@ogx.dev" }]
 description = "Open-source, OpenAI-compatible API server with pluggable providers for any model and any infrastructure"
 readme = "README.md"
