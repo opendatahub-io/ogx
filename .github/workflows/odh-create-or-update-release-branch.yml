@@ -1,6 +1,6 @@
-name: Create Release Branch
+name: Create or Update Release Branch
 
-run-name: Create release branch release-${{ inputs.product_version }} from tag ${{ inputs.tag }}
+run-name: Create or update release-${{ inputs.product_version }} from tag ${{ inputs.tag }}
 
 on:
   workflow_dispatch:
@@ -17,7 +17,7 @@ on:
 permissions: {}
 
 jobs:
-  create-release-branch:
+  create-or-update-release-branch:
     runs-on: ubuntu-latest
     env:
       TAG: ${{ inputs.tag }}
@@ -54,32 +54,45 @@ jobs:
           fi
           echo "Tag '${TAG}' exists"
 
-      - name: Validate release branch does not already exist
+      - name: Configure git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Check if release branch exists
+        id: check-branch
         run: |
           if git rev-parse --verify "refs/remotes/origin/${BRANCH}" >/dev/null 2>&1; then
-            echo "::error::Branch '${BRANCH}' already exists"
-            exit 1
+            echo "exists=true" >> "${GITHUB_OUTPUT}"
+            echo "Branch '${BRANCH}' already exists, will merge tag '${TAG}'"
+          else
+            echo "exists=false" >> "${GITHUB_OUTPUT}"
+            echo "Branch '${BRANCH}' does not exist, will create from tag '${TAG}'"
           fi
-          echo "Branch '${BRANCH}' does not exist yet"
 
       - name: Create release branch from tag
+        if: steps.check-branch.outputs.exists == 'false'
         run: |
           git checkout "tags/${TAG}"
           git checkout -b "${BRANCH}"
           echo "Created branch '${BRANCH}' from tag '${TAG}'"
 
-      - name: Configure git user
+      - name: Merge tag into existing release branch
+        if: steps.check-branch.outputs.exists == 'true'
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout "${BRANCH}"
+          if ! git merge "tags/${TAG}" -m "chore: merge tag ${TAG} into ${BRANCH}"; then
+            echo "::error::Merge conflict merging tag '${TAG}' into '${BRANCH}'. Manual resolution required."
+            git merge --abort
+            exit 1
+          fi
+          echo "Merged tag '${TAG}' into branch '${BRANCH}'"
 
       - name: Copy ODH workflows from main
         run: |
           workflows=(
             ".github/workflows/odh-create-tag.yml"
             ".github/workflows/odh-dispatch-version-update-to-odh-distribution.yml"
-            ".github/workflows/odh-trigger-gitlab-release-branch.yml"
-            ".github/workflows/odh-trigger-gitlab-update-deps.yml"
           )
 
           for workflow in "${workflows[@]}"; do
@@ -93,11 +106,12 @@ jobs:
 
       - name: Commit ODH workflows
         run: |
-          git add .github/workflows/
+          git add ".github/workflows/odh-create-tag.yml" \
+                 ".github/workflows/odh-dispatch-version-update-to-odh-distribution.yml"
           if git diff --cached --quiet; then
             echo "All workflows already up to date, skipping commit"
           else
-            git commit -m "ci: add ODH workflows to ${BRANCH}"
+            git commit -m "ci: sync ODH workflows on ${BRANCH}"
           fi
 
       - name: Calculate project version
@@ -112,7 +126,10 @@ jobs:
         env:
           PROJECT_VERSION: ${{ steps.project-version.outputs.project_version }}
         run: |
+          # First run: replace dynamic version with pinned (new branch from tag)
+          # Second run: update already-pinned version (existing branch)
           sed -i 's/^dynamic = \["version"\]/version = "'"${PROJECT_VERSION}"'"/' pyproject.toml
+          sed -i '/^\[project\]$/,/^\[/{s/^version = ".*"/version = "'"${PROJECT_VERSION}"'"/}' pyproject.toml
 
       - name: Verify pyproject.toml was updated
         env:
@@ -129,7 +146,11 @@ jobs:
           PROJECT_VERSION: ${{ steps.project-version.outputs.project_version }}
         run: |
           git add pyproject.toml
-          git commit -m "chore: set version to ${PROJECT_VERSION} for ${BRANCH}"
+          if git diff --cached --quiet; then
+            echo "Version already set to ${PROJECT_VERSION}, skipping commit"
+          else
+            git commit -m "chore: set version to ${PROJECT_VERSION} for ${BRANCH}"
+          fi
 
       - name: Push release branch
         run: |
