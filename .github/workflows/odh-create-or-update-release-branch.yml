@@ -122,30 +122,34 @@ jobs:
           echo "project_version=${PROJECT_VERSION}" >> "${GITHUB_OUTPUT}"
           echo "Calculated project version: ${PROJECT_VERSION}"
 
-      - name: Update pyproject.toml with pinned version
+      - name: Update pyproject.toml files with pinned version
         env:
           PROJECT_VERSION: ${{ steps.project-version.outputs.project_version }}
         run: |
           # First run: replace dynamic version with pinned (new branch from tag)
           # Second run: update already-pinned version (existing branch)
-          sed -i 's/^dynamic = \["version"\]/version = "'"${PROJECT_VERSION}"'"/' pyproject.toml
-          sed -i '/^\[project\]$/,/^\[/{s/^version = ".*"/version = "'"${PROJECT_VERSION}"'"/}' pyproject.toml
+          for pyproject in pyproject.toml src/ogx_api/pyproject.toml; do
+            sed -i 's/^dynamic = \["version"\]/version = "'"${PROJECT_VERSION}"'"/' "${pyproject}"
+            sed -i '/^\[project\]$/,/^\[/{s/^version = ".*"/version = "'"${PROJECT_VERSION}"'"/}' "${pyproject}"
+          done
 
-      - name: Verify pyproject.toml was updated
+      - name: Verify pyproject.toml files were updated
         env:
           PROJECT_VERSION: ${{ steps.project-version.outputs.project_version }}
         run: |
-          if ! grep -q "^version = \"${PROJECT_VERSION}\"" pyproject.toml; then
-            echo "::error::Failed to update pyproject.toml. Expected line 'version = \"${PROJECT_VERSION}\"' was not found"
-            exit 1
-          fi
-          echo "pyproject.toml updated: version = \"${PROJECT_VERSION}\""
+          for pyproject in pyproject.toml src/ogx_api/pyproject.toml; do
+            if ! grep -q "^version = \"${PROJECT_VERSION}\"" "${pyproject}"; then
+              echo "::error::Failed to update ${pyproject}. Expected line 'version = \"${PROJECT_VERSION}\"' was not found"
+              exit 1
+            fi
+            echo "${pyproject} updated: version = \"${PROJECT_VERSION}\""
+          done
 
       - name: Commit version change
         env:
           PROJECT_VERSION: ${{ steps.project-version.outputs.project_version }}
         run: |
-          git add pyproject.toml
+          git add pyproject.toml src/ogx_api/pyproject.toml
           if git diff --cached --quiet; then
             echo "Version already set to ${PROJECT_VERSION}, skipping commit"
           else
