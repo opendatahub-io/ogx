@@ -3,17 +3,18 @@ requires = ["setuptools>=61.0", "setuptools-scm>=8.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
-fallback_version = "0.7.1"
+fallback_version = "0.7.2"
 
 [tool.uv]
 required-version = ">=0.7.0"
 constraint-dependencies = [
     "pyasn1>=0.6.3",  # CVE-2026-30922: DoS via unbounded recursion
+    "starlette>=1.0.1",                # CVE-2026-48710
 ]
 
 [project]
 name = "llama_stack"
-version = "0.7.1+rhaiv.1"
+version = "0.7.2+rhaiv.0"
 authors = [{ name = "Meta Llama", email = "llama-oss@meta.com" }]
 description = "Open-source, OpenAI-compatible API server with pluggable providers for any model and any infrastructure"
 readme = "README.md"
