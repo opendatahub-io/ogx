@@ -4,6 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [tool.uv]
 required-version = ">=0.7.0"
+constraint-dependencies = [
+    "starlette>=1.0.1",                # CVE-2026-48710
+]
 
 [project]
 name = "llama_stack"
