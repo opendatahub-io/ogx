@@ -678,7 +678,7 @@ jobs:
   publish-packages:
     name: Publish ${{ matrix.package }}
     if: |
-      github.repository_owner == 'llamastack' &&
+      github.repository_owner == 'ogx-ai' &&
       (inputs.dry_run || 'test-pypi') != 'build-only' && (
         github.event_name == 'workflow_dispatch' ||
         github.event.action == 'published' ||
@@ -881,7 +881,7 @@ jobs:
       always() &&
       needs.compute-version.result == 'success' &&
       (needs.publish-packages.result == 'success' || needs.publish-packages.result == 'skipped') &&
-      github.repository_owner == 'llamastack' &&
+      github.repository_owner == 'ogx-ai' &&
       (inputs.dry_run || 'test-pypi') != 'build-only' &&
       (inputs.packages || 'all') != 'clients-only' && (
         github.event_name == 'workflow_dispatch' ||
