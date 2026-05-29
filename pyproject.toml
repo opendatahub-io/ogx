@@ -1,13 +1,20 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0", "setuptools-scm>=8.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+fallback_version = "0.4.6"
 
 [tool.uv]
 required-version = ">=0.7.0"
+constraint-dependencies = [
+    "pyasn1>=0.6.3",  # CVE-2026-30922: DoS via unbounded recursion
+    "starlette>=1.0.1",                # CVE-2026-48710
+]
 
 [project]
 name = "llama_stack"
-version = "0.4.2.1+rhai0"
+version = "0.4.6+rhai0"
 authors = [{ name = "Meta Llama", email = "llama-oss@meta.com" }]
 description = "Llama Stack"
 readme = "README.md"
@@ -35,7 +42,7 @@ dependencies = [
     "openai>=2.5.0",
     "prompt-toolkit",
     "python-dotenv",
-    "pyjwt[crypto]>=2.10.0",                          # Pull crypto to support RS256 for jwt. Requires 2.10.0+ for ssl_context support.
+    "pyjwt[crypto]>=2.12.0",                          # Pull crypto to support RS256 for jwt. Requires 2.12.0+ to fix CVE-2026-32597.
     "pydantic>=2.11.9",
     "rich",
     "termcolor",
@@ -57,7 +64,7 @@ dependencies = [
 
 [project.optional-dependencies]
 client = [
-    "llama-stack-client==0.4.2",
+    "llama-stack-client==0.4.6",
 ]
 
 [dependency-groups]
@@ -106,7 +113,7 @@ type_checking = [
     "lm-format-enforcer",
     "mcp",
     "ollama",
-    "llama-stack-client==0.4.2",
+    "llama-stack-client==0.4.6",
 ]
 # These are the dependencies required for running unit tests.
 unit = [
@@ -117,7 +124,7 @@ unit = [
     "aiosqlite",
     "aiohttp",
     "psycopg2-binary>=2.9.0",
-    "pypdf>=6.1.3",
+    "pypdf>=6.7.2",
     "mcp",
     "chardet",
     "sqlalchemy",
@@ -140,7 +147,7 @@ test = [
     "torchvision>=0.21.0",
     "chardet",
     "psycopg2-binary>=2.9.0",
-    "pypdf>=6.1.3",
+    "pypdf>=6.7.2",
     "mcp",
     "datasets>=4.0.0",
     "autoevals",
@@ -188,8 +195,6 @@ where = ["src"]
 include = [
     "llama_stack",
     "llama_stack.*",
-    "llama_stack_api",
-    "llama_stack_api.*",
 ]
 
 [[tool.uv.index]]
