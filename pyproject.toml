@@ -10,7 +10,7 @@ constraint-dependencies = [
 
 [project]
 name = "llama_stack"
-version = "0.4.2.1+rhai0"
+version = "0.4.2.2+rhai0"
 authors = [{ name = "Meta Llama", email = "llama-oss@meta.com" }]
 description = "Llama Stack"
 readme = "README.md"
