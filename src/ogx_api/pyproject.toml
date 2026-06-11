@@ -14,7 +14,7 @@ constraint-dependencies = [
 
 [project]
 name = "ogx-api"
-dynamic = ["version"]
+version = "1.1.0+rhaiv.0"
 authors = [{ name = "The OGX Contributors", email = "contributors@ogx.dev" }]
 description = "API and Provider specifications for OGX - lightweight package with protocol definitions and provider specs"
 readme = "README.md"
