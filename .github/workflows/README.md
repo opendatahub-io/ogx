@@ -21,6 +21,7 @@ OGX uses GitHub Actions for Continuous Integration (CI). Below is a table detail
 | Messages API - Claude Code Client Smoke Tests | [integration-tests-messages-clients.yml](integration-tests-messages-clients.yml) | Drive the Claude Code CLI and Agent SDK against /v1/messages (live, Ollama) |
 | Integration Tests (Replay) | [integration-tests.yml](integration-tests.yml) | Run the integration test suites from tests/integration in replay mode |
 | Vector IO Integration Tests | [integration-vector-io-tests.yml](integration-vector-io-tests.yml) | Run the integration test suite with various VectorIO providers |
+| Launch GPU EC2 Runner | [launch-gpu-ec2-runner.yml](launch-gpu-ec2-runner.yml) | Launch GPU EC2 Runner |
 | Create or Update Release Branch | [odh-create-or-update-release-branch.yml](odh-create-or-update-release-branch.yml) | Create or update release-${{ inputs.product_version }} from tag ${{ inputs.tag }} |
 | Create release tag | [odh-create-tag.yml](odh-create-tag.yml) | Create tag from version in pyproject.toml |
 | Dispatch Version Update to ODH Distribution | [odh-dispatch-version-update-to-odh-distribution.yml](odh-dispatch-version-update-to-odh-distribution.yml) | Dispatch version update to llama-stack-distribution (${{ github.ref_name }}) |
@@ -35,10 +36,11 @@ OGX uses GitHub Actions for Continuous Integration (CI). Below is a table detail
 | Integration Tests (Record) | [record-integration-tests.yml](record-integration-tests.yml) | Auto-record missing test recordings for PR |
 | Release Branch Scheduled CI | [release-branch-scheduled-ci.yml](release-branch-scheduled-ci.yml) | Scheduled CI checks for active release branches |
 | Check semantic PR titles | [semantic-pr.yml](semantic-pr.yml) | Ensure that PR titles follow the conventional commit spec |
-| Stainless SDK Builds | [stainless-builds.yml](stainless-builds.yml) | Build Stainless SDK from OpenAPI spec changes |
 | Close stale issues and PRs | [stale_bot.yml](stale_bot.yml) | Run the Stale Bot action |
 | Test External Providers Installed via Module | [test-external-provider-module.yml](test-external-provider-module.yml) | Test External Provider installation via Python module |
 | Test External API and Providers | [test-external.yml](test-external.yml) | Test the External API and Provider mechanisms |
 | Trigger Docs Deploy | [trigger-docs-deploy.yml](trigger-docs-deploy.yml) | Trigger docs site rebuild after docs change |
+| Trivy Scheduled Security Scan | [trivy-scheduled.yml](trivy-scheduled.yml) | Trivy Scheduled Security Scan |
+| Trivy Security Scan | [trivy-security.yml](trivy-security.yml) | Trivy Security Scan |
 | UI Tests | [ui-unit-tests.yml](ui-unit-tests.yml) | Run the UI test suite |
 | Unit Tests | [unit-tests.yml](unit-tests.yml) | Run the unit test suite |
