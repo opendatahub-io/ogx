@@ -88,6 +88,13 @@ jobs:
           fi
           echo "Merged tag '${TAG}' into branch '${BRANCH}'"
 
+      - name: Create temporary branch for PR
+        if: steps.check-branch.outputs.exists == 'true'
+        run: |
+          TEMP_BRANCH="update-${BRANCH}-${TAG}"
+          git checkout -b "${TEMP_BRANCH}"
+          echo "Created temporary branch '${TEMP_BRANCH}' for PR"
+
       - name: Copy ODH workflows from main
         run: |
           workflows=(
@@ -156,7 +163,22 @@ jobs:
             git commit -m "chore: set version to ${PROJECT_VERSION} for ${BRANCH}"
           fi
 
-      - name: Push release branch
+      - name: Push new release branch
+        if: steps.check-branch.outputs.exists == 'false'
         run: |
           git push origin "${BRANCH}"
           echo "Successfully pushed branch '${BRANCH}'"
+
+      - name: Push temporary branch and create PR
+        if: steps.check-branch.outputs.exists == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          TEMP_BRANCH="update-${BRANCH}-${TAG}"
+          git push origin "${TEMP_BRANCH}"
+          gh pr create \
+            --base "${BRANCH}" \
+            --head "${TEMP_BRANCH}" \
+            --title "chore: merge ${TAG} into ${BRANCH}" \
+            --body "Automated release update: merges tag ${TAG}, syncs ODH workflows, and sets project version."
+          echo "Successfully created PR to merge '${TEMP_BRANCH}' into '${BRANCH}'"
