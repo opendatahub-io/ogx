@@ -265,15 +265,10 @@ run_client_ts_tests() {
             npm install --silent
         fi
 
-        # Then install the client from local directory
+        # Then install the local checkout under the legacy package name used by
+        # release-0.5 integration tests. The latest checkout may publish as ogx-client.
         echo "Installing llama-stack-client from: $TS_CLIENT_PATH"
-        npm install "$TS_CLIENT_PATH" --silent --ignore-scripts
-        if [[ "$ts_client_package_name" != "llama-stack-client" && -d "node_modules/$ts_client_package_name" && ! -e node_modules/llama-stack-client ]]; then
-            ln -s "$ts_client_package_name" node_modules/llama-stack-client
-        fi
-        if [[ "$ts_client_package_name" != "llama-stack-client" ]]; then
-            export LLAMA_STACK_TS_SKIP_STREAMING_TESTS=1
-        fi
+        npm install "llama-stack-client@file:${TS_CLIENT_PATH}" --silent --ignore-scripts
     else
         # It's an npm version specifier - install from npm
         echo "Installing llama-stack-client@${TS_CLIENT_PATH} from npm"
