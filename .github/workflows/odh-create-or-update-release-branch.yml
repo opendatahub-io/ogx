@@ -136,6 +136,7 @@ jobs:
           # First run: replace dynamic version with pinned (new branch from tag)
           # Second run: update already-pinned version (existing branch)
           for pyproject in pyproject.toml src/ogx_api/pyproject.toml; do
+            [ -f "${pyproject}" ] || continue
             sed -i 's/^dynamic = \["version"\]/version = "'"${PROJECT_VERSION}"'"/' "${pyproject}"
             sed -i '/^\[project\]$/,/^\[/{s/^version = ".*"/version = "'"${PROJECT_VERSION}"'"/}' "${pyproject}"
           done
@@ -145,6 +146,7 @@ jobs:
           PROJECT_VERSION: ${{ steps.project-version.outputs.project_version }}
         run: |
           for pyproject in pyproject.toml src/ogx_api/pyproject.toml; do
+            [ -f "${pyproject}" ] || continue
             if ! grep -q "^version = \"${PROJECT_VERSION}\"" "${pyproject}"; then
               echo "::error::Failed to update ${pyproject}. Expected line 'version = \"${PROJECT_VERSION}\"' was not found"
               exit 1
@@ -156,7 +158,8 @@ jobs:
         env:
           PROJECT_VERSION: ${{ steps.project-version.outputs.project_version }}
         run: |
-          git add pyproject.toml src/ogx_api/pyproject.toml
+          git add pyproject.toml
+          [ -f src/ogx_api/pyproject.toml ] && git add src/ogx_api/pyproject.toml
           if git diff --cached --quiet; then
             echo "Version already set to ${PROJECT_VERSION}, skipping commit"
           else
