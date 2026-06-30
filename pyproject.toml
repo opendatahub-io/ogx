@@ -17,9 +17,11 @@ constraint-dependencies = [
     "idna>=3.15",
     "joserfc>=1.6.7",
     "lxml>=6.1.0",                     # CVE-2026-41066: XML entity expansion with default resolve_entities=True
+    "msgpack>=1.2.1",
     "pillow>=12.2.0",                  # CVE-2026-40192 + 4 more: heap overflow, OOB write, DoS
     "protobuf>=5.29.6",               # CVE-2025-4565 + CVE-2026-0994: parsing vulnerabilities
     "pyasn1>=0.6.3",                   # CVE-2026-30922: DoS via unbounded recursion
+    "pydantic-settings>=2.14.2",
     "python-multipart>=0.0.31",        # CVE-2026-40347: header injection; CVE-2026-42561: DoS via oversized headers
     "python-socketio>=5.16.2",         # CVE-2025-61765: RCE via pickle deserialization
     "requests>=2.34.2",
@@ -112,7 +114,7 @@ starter = [
     "pgvector>=0.3.0",
     "pymilvus[milvus-lite]>=2.4.10",
     "pymongo",
-    "pypdf>=6.13.0",
+    "pypdf>=6.13.3",
     "pythainlp",
     "qdrant-client",
     "redis>=8.0.0",
@@ -160,7 +162,7 @@ type_checking = [
     "types-setuptools",
     "types-jsonschema",
     "markitdown[all]",
-    "pypdf>=6.13.0",
+    "pypdf>=6.13.3",
     "pandas-stubs",
     "types-psutil>=7.2.2.20260518",
     "types-tqdm",
@@ -198,7 +200,7 @@ test-common = [
     "mcp>=1.23.0,<2.0",
     "pgvector>=0.3.0",
     "psycopg2-binary>=2.9.0",
-    "pypdf>=6.13.0",
+    "pypdf>=6.13.3",
     "sqlalchemy[asyncio]>=2.0.41",
 ]
 # These are the dependencies required for running unit tests.
