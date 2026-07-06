@@ -71,6 +71,7 @@ from ogx_api import (
     Order,
     Prompts,
     ResponseItemInclude,
+    ResponseNotFoundError,
     ResponseStreamOptions,
     ResponseTruncation,
     ServiceNotEnabledError,
@@ -80,7 +81,7 @@ from ogx_api import (
 )
 from ogx_api.inference import OpenAIChatCompletionRequestWithExtraBody, ServiceTier
 
-from .memory import resolve_memory_context
+from .memory import resolve_memory_context, resolve_memory_owner_id, write_conversation_memory
 from .streaming import StreamingResponseOrchestrator
 from .tool_executor import ToolExecutor
 from .types import ChatCompletionContext, ToolContext
@@ -96,6 +97,13 @@ logger = get_logger(name=__name__, category="openai_responses")
 BACKGROUND_RESPONSE_TIMEOUT_SECONDS = 300  # 5 minutes
 BACKGROUND_QUEUE_MAX_SIZE = 100
 BACKGROUND_NUM_WORKERS = 10
+STREAMING_PERSISTED_EVENT_TYPES = {
+    "response.in_progress",
+    "response.output_item.done",
+    "response.completed",
+    "response.incomplete",
+    "response.failed",
+}
 
 
 @dataclass
@@ -150,6 +158,10 @@ class OpenAIResponsesImpl:
         self._background_worker_tasks: set[asyncio.Task] = set()
         self._background_response_tasks: dict[str, asyncio.Task] = {}
         self._background_response_tasks_lock = asyncio.Lock()
+        self._background_response_status_locks: dict[str, asyncio.Lock] = {}
+        self._memory_write_tasks: dict[tuple[str, str, str], asyncio.Task] = {}
+        self._memory_write_locks: dict[tuple[str, str, str], asyncio.Lock] = {}
+        self._active_memory_write_keys: set[tuple[str, str, str]] = set()
 
     async def initialize(self) -> None:
         """No-op: background workers are started lazily on first use.
@@ -179,9 +191,27 @@ class OpenAIResponsesImpl:
         for task in self._background_worker_tasks:
             task.cancel()
 
+        memory_write_task_list = list(self._memory_write_tasks.values())
+        for task in memory_write_task_list:
+            task.cancel()
+
         # Wait for all tasks to complete
-        all_tasks = list(self._background_worker_tasks) + response_task_list
+        all_tasks = list(self._background_worker_tasks) + response_task_list + memory_write_task_list
         await asyncio.gather(*all_tasks, return_exceptions=True)
+
+    def _get_background_response_status_lock(self, response_id: str) -> asyncio.Lock:
+        lock = self._background_response_status_locks.get(response_id)
+        if lock is None:
+            lock = asyncio.Lock()
+            self._background_response_status_locks[response_id] = lock
+        return lock
+
+    def _get_memory_write_lock(self, memory_write_key: tuple[str, str, str]) -> asyncio.Lock:
+        lock = self._memory_write_locks.get(memory_write_key)
+        if lock is None:
+            lock = asyncio.Lock()
+            self._memory_write_locks[memory_write_key] = lock
+        return lock
 
     async def _background_worker(self) -> None:
         """Worker coroutine that pulls items from the queue and processes them."""
@@ -208,10 +238,13 @@ class OpenAIResponsesImpl:
                     # Response was cancelled via cancel_openai_response
                     logger.info("Background response was cancelled", response_id=response_id)
                     try:
-                        existing = await self.responses_store.get_response_object(response_id, reconstruct_input=False)
-                        if existing.status != "cancelled":
-                            existing.status = "cancelled"
-                            await self.responses_store.update_response_object(existing)
+                        async with self._get_background_response_status_lock(response_id):
+                            existing = await self.responses_store.get_response_object(
+                                response_id, reconstruct_input=False
+                            )
+                            if existing.status != "cancelled":
+                                existing.status = "cancelled"
+                                await self.responses_store.update_response_object(existing)
                     except Exception:
                         logger.exception("Failed to update response with cancelled status", response_id=response_id)
                 except TimeoutError:
@@ -221,13 +254,17 @@ class OpenAIResponsesImpl:
                         timeout_seconds=BACKGROUND_RESPONSE_TIMEOUT_SECONDS,
                     )
                     try:
-                        existing = await self.responses_store.get_response_object(response_id, reconstruct_input=False)
-                        existing.status = "failed"
-                        existing.error = OpenAIResponseError(
-                            code="processing_error",
-                            message=f"Background response timed out after {BACKGROUND_RESPONSE_TIMEOUT_SECONDS}s",
-                        )
-                        await self.responses_store.update_response_object(existing)
+                        async with self._get_background_response_status_lock(response_id):
+                            existing = await self.responses_store.get_response_object(
+                                response_id, reconstruct_input=False
+                            )
+                            if existing.status != "cancelled":
+                                existing.status = "failed"
+                                existing.error = OpenAIResponseError(
+                                    code="processing_error",
+                                    message=f"Background response timed out after {BACKGROUND_RESPONSE_TIMEOUT_SECONDS}s",
+                                )
+                                await self.responses_store.update_response_object(existing)
                     except Exception:
                         logger.exception(
                             "Failed to update response with timeout status, client polling this response will not see the failure",
@@ -236,13 +273,17 @@ class OpenAIResponsesImpl:
                 except Exception as e:
                     logger.exception("Failed to process background response", response_id=response_id)
                     try:
-                        existing = await self.responses_store.get_response_object(response_id, reconstruct_input=False)
-                        existing.status = "failed"
-                        existing.error = OpenAIResponseError(
-                            code="processing_error",
-                            message=str(e),
-                        )
-                        await self.responses_store.update_response_object(existing)
+                        async with self._get_background_response_status_lock(response_id):
+                            existing = await self.responses_store.get_response_object(
+                                response_id, reconstruct_input=False
+                            )
+                            if existing.status != "cancelled":
+                                existing.status = "failed"
+                                existing.error = OpenAIResponseError(
+                                    code="processing_error",
+                                    message=str(e),
+                                )
+                                await self.responses_store.update_response_object(existing)
                     except Exception:
                         logger.exception(
                             "Failed to update response with error status, client polling this response will not see the failure",
@@ -252,6 +293,7 @@ class OpenAIResponsesImpl:
                     # Remove from tracking
                     async with self._background_response_tasks_lock:
                         self._background_response_tasks.pop(response_id, None)
+                    self._background_response_status_locks.pop(response_id, None)
                     self._background_queue.task_done()
 
     async def _prepend_previous_response(
@@ -356,6 +398,137 @@ class OpenAIResponsesImpl:
             insert_at = index + 1
 
         messages.insert(insert_at, OpenAISystemMessageParam(content=memory_context))
+
+    def _schedule_memory_write(
+        self,
+        conversation_id: str | None,
+        response_id: str,
+        response_status: str | None,
+        model: str | None,
+        memory: MemoryToolConfig | None,
+        metadata: dict[str, str] | None,
+        safety_identifier: str | None,
+    ) -> None:
+        if (
+            not self.memory_config.enabled
+            or not self.memory_config.write_enabled
+            or (memory is not None and not memory.enabled)
+            or response_status != "completed"
+            or not conversation_id
+            or not (
+                memory.vector_store_id
+                if memory and memory.vector_store_id
+                else self.memory_config.default_vector_store_id
+            )
+        ):
+            return
+
+        vector_store_id = (
+            memory.vector_store_id if memory and memory.vector_store_id else self.memory_config.default_vector_store_id
+        )
+        assert vector_store_id is not None
+        owner_id = resolve_memory_owner_id(memory, metadata, safety_identifier)
+        if not owner_id:
+            logger.debug("Skipping memory write", reason="missing owner")
+            return
+
+        memory_write_key = (owner_id, conversation_id, vector_store_id)
+        previous_task = self._memory_write_tasks.get(memory_write_key)
+        if previous_task is not None and not previous_task.done():
+            if memory_write_key not in self._active_memory_write_keys:
+                previous_task.cancel()
+
+        task = create_detached_background_task(
+            self._write_conversation_memory_after_delay(
+                memory_write_key=memory_write_key,
+                owner_id=owner_id,
+                conversation_id=conversation_id,
+                response_id=response_id,
+                response_status=response_status,
+                model=model,
+                memory=memory,
+                metadata=metadata,
+                safety_identifier=safety_identifier,
+            )
+        )
+        self._memory_write_tasks[memory_write_key] = task
+
+    async def _write_conversation_memory_after_delay(
+        self,
+        memory_write_key: tuple[str, str, str],
+        owner_id: str,
+        conversation_id: str,
+        response_id: str,
+        response_status: str | None,
+        model: str | None,
+        memory: MemoryToolConfig | None,
+        metadata: dict[str, str] | None,
+        safety_identifier: str | None,
+    ) -> None:
+        try:
+            if self.memory_config.write_debounce_seconds > 0:
+                await asyncio.sleep(self.memory_config.write_debounce_seconds)
+            async with self._get_memory_write_lock(memory_write_key):
+                self._active_memory_write_keys.add(memory_write_key)
+                try:
+                    await self._write_conversation_memory_safe(
+                        conversation_id=conversation_id,
+                        response_id=response_id,
+                        response_status=response_status,
+                        model=model,
+                        memory=memory,
+                        metadata=metadata,
+                        safety_identifier=safety_identifier,
+                        owner_id=owner_id,
+                    )
+                finally:
+                    self._active_memory_write_keys.discard(memory_write_key)
+        except asyncio.CancelledError:
+            raise
+        finally:
+            current_task = asyncio.current_task()
+            if self._memory_write_tasks.get(memory_write_key) is current_task:
+                self._memory_write_tasks.pop(memory_write_key, None)
+            if (
+                memory_write_key not in self._memory_write_tasks
+                and memory_write_key not in self._active_memory_write_keys
+            ):
+                self._memory_write_locks.pop(memory_write_key, None)
+
+    async def _write_conversation_memory_safe(
+        self,
+        conversation_id: str,
+        response_id: str,
+        response_status: str | None,
+        model: str | None,
+        memory: MemoryToolConfig | None,
+        metadata: dict[str, str] | None,
+        safety_identifier: str | None,
+        owner_id: str,
+    ) -> None:
+        try:
+            await write_conversation_memory(
+                inference_api=self.inference_api,
+                files_api=self.files_api,
+                vector_io_api=self.vector_io_api,
+                responses_store=self.responses_store,
+                memory_config=self.memory_config,
+                request_memory=memory,
+                conversation_id=conversation_id,
+                response_id=response_id,
+                response_status=response_status,
+                model=model,
+                metadata=metadata,
+                safety_identifier=safety_identifier,
+                owner_id=owner_id,
+            )
+        except Exception as exc:
+            logger.warning(
+                "Failed to write memory summary",
+                conversation_id=conversation_id,
+                response_id=response_id,
+                error=str(exc),
+            )
 
     async def _prepend_prompt(
         self,
@@ -545,6 +718,7 @@ class OpenAIResponsesImpl:
         input_items: list[OpenAIResponseInput],
         output_items: list,
         incremental_input: bool = False,
+        is_background_response: bool = False,
     ) -> None:
         """Persist response state at significant streaming events.
 
@@ -562,74 +736,132 @@ class OpenAIResponsesImpl:
         :param input_items: Pre-prepared input items for storage.
         :param output_items: Accumulated output items so far.
         :param incremental_input: If True, input_items contains only new items for this turn.
+        :param is_background_response: If True, guard persistence against background cancellation races.
         """
+        response = getattr(stream_chunk, "response", None)
+        response_id = getattr(response, "id", None) or getattr(orchestrator, "response_id", None)
+        if stream_chunk.type not in STREAMING_PERSISTED_EVENT_TYPES:
+            return
+
         try:
-            match stream_chunk.type:
-                case "response.in_progress":
-                    # Initial persistence when response starts
-                    in_progress_response = stream_chunk.response
-                    await self.responses_store.upsert_response_object(
-                        response_object=in_progress_response,
-                        input=input_items,
-                        messages=[],
-                        incremental_input=incremental_input,
-                    )
-
-                case "response.output_item.done":
-                    # Incremental update when an output item completes (tool call, message)
-                    current_snapshot = orchestrator._snapshot_response(
-                        status="in_progress",
-                        outputs=output_items,
-                    )
-                    # Get current messages (filter out system messages)
-                    messages_to_store = list(
-                        filter(
-                            lambda x: not isinstance(x, OpenAISystemMessageParam),
-                            orchestrator.final_messages or orchestrator.ctx.messages,
+            if is_background_response and response_id:
+                async with self._get_background_response_status_lock(response_id):
+                    try:
+                        existing_response = await self.responses_store.get_response_object(
+                            response_id, reconstruct_input=False
                         )
-                    )
-                    await self.responses_store.upsert_response_object(
-                        response_object=current_snapshot,
-                        input=input_items,
-                        messages=messages_to_store,
+                    except ResponseNotFoundError:
+                        existing_response = None
+                    if existing_response is not None:
+                        if existing_response.status == "cancelled":
+                            logger.info(
+                                "Skipping streaming persistence for cancelled response",
+                                response_id=response_id,
+                                chunk_type=stream_chunk.type,
+                            )
+                            return
+                    await self._persist_streaming_state_unlocked(
+                        stream_chunk=stream_chunk,
+                        orchestrator=orchestrator,
+                        input_items=input_items,
+                        output_items=output_items,
                         incremental_input=incremental_input,
+                        force_background=True,
                     )
+                    return
 
-                case "response.completed" | "response.incomplete":
-                    # Final persistence when response finishes
-                    final_response = stream_chunk.response
-                    messages_to_store = list(
-                        filter(
-                            lambda x: not isinstance(x, OpenAISystemMessageParam),
-                            orchestrator.final_messages,
-                        )
-                    )
-                    await self.responses_store.upsert_response_object(
-                        response_object=final_response,
-                        input=input_items,
-                        messages=messages_to_store,
-                        incremental_input=incremental_input,
-                    )
-
-                case "response.failed":
-                    # Persist failed state so GET shows error
-                    failed_response = stream_chunk.response
-                    # Preserve any accumulated non-system messages for failed responses
-                    messages_to_store = list(
-                        filter(
-                            lambda x: not isinstance(x, OpenAISystemMessageParam),
-                            orchestrator.final_messages or orchestrator.ctx.messages,
-                        )
-                    )
-                    await self.responses_store.upsert_response_object(
-                        response_object=failed_response,
-                        input=input_items,
-                        messages=messages_to_store,
-                        incremental_input=incremental_input,
-                    )
+            await self._persist_streaming_state_unlocked(
+                stream_chunk=stream_chunk,
+                orchestrator=orchestrator,
+                input_items=input_items,
+                output_items=output_items,
+                incremental_input=incremental_input,
+                force_background=False,
+            )
         except Exception as e:
             # Best-effort persistence: log error but don't fail the stream
             logger.warning("Failed to persist streaming state", chunk_type=stream_chunk.type, error=str(e))
+
+    async def _persist_streaming_state_unlocked(
+        self,
+        stream_chunk: OpenAIResponseObjectStream,
+        orchestrator,
+        input_items: list[OpenAIResponseInput],
+        output_items: list,
+        incremental_input: bool,
+        force_background: bool,
+    ) -> None:
+        match stream_chunk.type:
+            case "response.in_progress":
+                # Initial persistence when response starts
+                in_progress_response = stream_chunk.response
+                if force_background:
+                    in_progress_response = in_progress_response.model_copy(update={"background": True})
+                await self.responses_store.upsert_response_object(
+                    response_object=in_progress_response,
+                    input=input_items,
+                    messages=[],
+                    incremental_input=incremental_input,
+                )
+
+            case "response.output_item.done":
+                # Incremental update when an output item completes (tool call, message)
+                current_snapshot = orchestrator._snapshot_response(
+                    status="in_progress",
+                    outputs=output_items,
+                )
+                if force_background:
+                    current_snapshot = current_snapshot.model_copy(update={"background": True})
+                # Get current messages (filter out system messages)
+                messages_to_store = list(
+                    filter(
+                        lambda x: not isinstance(x, OpenAISystemMessageParam),
+                        orchestrator.final_messages or orchestrator.ctx.messages,
+                    )
+                )
+                await self.responses_store.upsert_response_object(
+                    response_object=current_snapshot,
+                    input=input_items,
+                    messages=messages_to_store,
+                    incremental_input=incremental_input,
+                )
+
+            case "response.completed" | "response.incomplete":
+                # Final persistence when response finishes
+                final_response = stream_chunk.response
+                if force_background:
+                    final_response = final_response.model_copy(update={"background": True})
+                messages_to_store = list(
+                    filter(
+                        lambda x: not isinstance(x, OpenAISystemMessageParam),
+                        orchestrator.final_messages,
+                    )
+                )
+                await self.responses_store.upsert_response_object(
+                    response_object=final_response,
+                    input=input_items,
+                    messages=messages_to_store,
+                    incremental_input=incremental_input,
+                )
+
+            case "response.failed":
+                # Persist failed state so GET shows error
+                failed_response = stream_chunk.response
+                if force_background:
+                    failed_response = failed_response.model_copy(update={"background": True})
+                # Preserve any accumulated non-system messages for failed responses
+                messages_to_store = list(
+                    filter(
+                        lambda x: not isinstance(x, OpenAISystemMessageParam),
+                        orchestrator.final_messages or orchestrator.ctx.messages,
+                    )
+                )
+                await self.responses_store.upsert_response_object(
+                    response_object=failed_response,
+                    input=input_items,
+                    messages=messages_to_store,
+                    incremental_input=incremental_input,
+                )
 
     async def create_openai_response(
         self,
@@ -996,15 +1228,16 @@ class OpenAIResponsesImpl:
         memory: MemoryToolConfig | None = None,
     ) -> None:
         """Inner loop for background response processing, separated for timeout wrapping."""
-        # Check if response was cancelled before starting
-        existing = await self.responses_store.get_response_object(response_id, reconstruct_input=False)
-        if existing.status == "cancelled":
-            logger.info("Background response was cancelled before processing started", response_id=response_id)
-            return
+        async with self._get_background_response_status_lock(response_id):
+            # Check if response was cancelled before starting
+            existing = await self.responses_store.get_response_object(response_id, reconstruct_input=False)
+            if existing.status == "cancelled":
+                logger.info("Background response was cancelled before processing started", response_id=response_id)
+                return
 
-        # Update status to in_progress
-        existing.status = "in_progress"
-        await self.responses_store.update_response_object(existing)
+            # Update status to in_progress
+            existing.status = "in_progress"
+            await self.responses_store.update_response_object(existing)
 
         # Process the response using existing streaming logic
         stream_gen = self._create_streaming_response(
@@ -1036,6 +1269,7 @@ class OpenAIResponsesImpl:
             extra_body=extra_body,
             context_management=context_management,
             memory=memory,
+            background=True,
         )
 
         result_response = None
@@ -1054,28 +1288,30 @@ class OpenAIResponsesImpl:
                     pass
 
         if result_response is not None:
-            # Check if response was cancelled before final update to avoid race condition
-            current = await self.responses_store.get_response_object(response_id, reconstruct_input=False)
-            if current.status == "cancelled":
-                logger.info("Background response was cancelled before final update", response_id=response_id)
-                return
+            async with self._get_background_response_status_lock(response_id):
+                # Check if response was cancelled before final update to avoid race condition
+                current = await self.responses_store.get_response_object(response_id, reconstruct_input=False)
+                if current.status == "cancelled":
+                    logger.info("Background response was cancelled before final update", response_id=response_id)
+                    return
 
-            result_response.background = True
-            result_response.id = response_id  # Ensure we update the correct response
-            await self.responses_store.update_response_object(result_response)
+                result_response.background = True
+                result_response.id = response_id  # Ensure we update the correct response
+                await self.responses_store.update_response_object(result_response)
         else:
-            # Something went wrong - mark as failed
-            existing = await self.responses_store.get_response_object(response_id, reconstruct_input=False)
-            if existing.status == "cancelled":
-                logger.info("Background response was cancelled before failure update", response_id=response_id)
-                return
+            async with self._get_background_response_status_lock(response_id):
+                # Something went wrong - mark as failed
+                existing = await self.responses_store.get_response_object(response_id, reconstruct_input=False)
+                if existing.status == "cancelled":
+                    logger.info("Background response was cancelled before failure update", response_id=response_id)
+                    return
 
-            existing.status = "failed"
-            existing.error = OpenAIResponseError(
-                code="processing_error",
-                message="Response stream never reached a terminal state",
-            )
-            await self.responses_store.update_response_object(existing)
+                existing.status = "failed"
+                existing.error = OpenAIResponseError(
+                    code="processing_error",
+                    message="Response stream never reached a terminal state",
+                )
+                await self.responses_store.update_response_object(existing)
 
     async def _create_streaming_response(
         self,
@@ -1111,6 +1347,7 @@ class OpenAIResponsesImpl:
         stream_options: ResponseStreamOptions | None = None,
         context_management: list | None = None,
         memory: MemoryToolConfig | None = None,
+        background: bool = False,
     ) -> AsyncIterator[OpenAIResponseObjectStream]:
         # These should never be None when called from create_openai_response (which sets defaults)
         # but we assert here to help mypy understand the types
@@ -1250,6 +1487,7 @@ class OpenAIResponsesImpl:
                         input_items=input_items_for_storage,
                         output_items=output_items,
                         incremental_input=incremental,
+                        is_background_response=background,
                     )
 
                 # Store and sync before yielding terminal events
@@ -1266,6 +1504,15 @@ class OpenAIResponsesImpl:
                         )
                         await self._sync_response_to_conversation(conversation, input, output_items)
                         await self.responses_store.store_conversation_messages(conversation, messages_to_store)
+                        self._schedule_memory_write(
+                            conversation_id=conversation,
+                            response_id=final_response.id,
+                            response_status=final_response.status,
+                            model=model,
+                            memory=memory,
+                            metadata=metadata,
+                            safety_identifier=safety_identifier,
+                        )
 
                 yield stream_chunk
 
@@ -1568,35 +1815,38 @@ class OpenAIResponsesImpl:
             ResponseNotFoundError: If the response doesn't exist (automatically from store)
             ConflictError: If the response is already in a terminal state
         """
-        # Get current response state
-        response = await self.responses_store.get_response_object(response_id, reconstruct_input=False)
+        async with self._get_background_response_status_lock(response_id):
+            # Get current response state
+            response = await self.responses_store.get_response_object(response_id, reconstruct_input=False)
 
-        # If already cancelled, return current state (idempotent)
-        if response.status == "cancelled":
-            return response.to_response_object()
+            # If already cancelled, return current state (idempotent)
+            if response.status == "cancelled":
+                return response.to_response_object()
 
-        # Only background responses can be cancelled
-        if not response.background:
-            raise ConflictError(f"Cannot cancel response '{response_id}': only background responses can be cancelled")
+            # Only background responses can be cancelled
+            if not response.background:
+                raise ConflictError(
+                    f"Cannot cancel response '{response_id}': only background responses can be cancelled"
+                )
 
-        # Cannot cancel responses in terminal states
-        if response.status in ["completed", "failed", "incomplete"]:
-            raise ConflictError(f"Cannot cancel response '{response_id}' with status '{response.status}'")
+            # Cannot cancel responses in terminal states
+            if response.status in ["completed", "failed", "incomplete"]:
+                raise ConflictError(f"Cannot cancel response '{response_id}' with status '{response.status}'")
 
-        # Update status to cancelled in database
-        response.status = "cancelled"
-        await self.responses_store.update_response_object(response)
+            # Update status to cancelled in database
+            response.status = "cancelled"
+            await self.responses_store.update_response_object(response)
 
-        # If the response is currently being processed, cancel the task
-        async with self._background_response_tasks_lock:
-            task = self._background_response_tasks.get(response_id)
-            if task:
-                task.cancel()
-                # Note: task removal handled in worker's finally block
+            # If the response is currently being processed, cancel the task
+            async with self._background_response_tasks_lock:
+                task = self._background_response_tasks.get(response_id)
+                if task:
+                    task.cancel()
+                    # Note: task removal handled in worker's finally block
 
-        # Re-fetch from store to return the persisted state
-        updated = await self.responses_store.get_response_object(response_id, reconstruct_input=False)
-        return updated.to_response_object()
+            # Re-fetch from store to return the persisted state
+            updated = await self.responses_store.get_response_object(response_id, reconstruct_input=False)
+            return updated.to_response_object()
 
     async def _sync_response_to_conversation(
         self, conversation_id: str, input: str | list[OpenAIResponseInput] | None, output_items: list[ConversationItem]
