@@ -5,6 +5,10 @@
 # the root directory of this source tree.
 
 from collections.abc import AsyncIterator
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ogx_api.skills import Skills
 
 from opentelemetry import metrics
 
@@ -75,6 +79,7 @@ class BuiltinResponsesImpl(Responses):
         files_api: Files,
         connectors_api: Connectors,
         policy: list[AccessRule],
+        skills_api: "Skills | None" = None,
     ):
         self.config = config
         self.inference_api = inference_api
@@ -87,6 +92,7 @@ class BuiltinResponsesImpl(Responses):
         self.openai_responses_impl: OpenAIResponsesImpl | None = None
         self.policy = policy
         self.connectors_api = connectors_api
+        self.skills_api = skills_api
 
     async def initialize(self) -> None:
         self.responses_store = ResponsesStore(self.config.persistence.responses, self.policy)
@@ -106,6 +112,7 @@ class BuiltinResponsesImpl(Responses):
             files_api=self.files_api,
             vector_stores_config=self.config.vector_stores_config,
             connectors_api=self.connectors_api,
+            skills_api=self.skills_api,
             compaction_config=self.config.compaction_config,
             memory_config=self.config.memory_config,
         )
@@ -139,6 +146,7 @@ class BuiltinResponsesImpl(Responses):
             model=request.model,
             prompt=request.prompt,
             instructions=request.instructions,
+            skills=request.skills,
             previous_response_id=request.previous_response_id,
             prompt_cache_key=request.prompt_cache_key,
             conversation=request.conversation,

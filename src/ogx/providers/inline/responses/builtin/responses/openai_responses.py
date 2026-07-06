@@ -5,11 +5,17 @@
 # the root directory of this source tree.
 
 import asyncio
+import io
 import re
 import time
 import uuid
+import zipfile
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ogx_api.skills import Skills
 
 import tiktoken
 from pydantic import TypeAdapter
@@ -24,6 +30,8 @@ from ogx.core.task import (
 )
 from ogx.log import get_logger
 from ogx.providers.inline.responses.builtin.config import CompactionConfig, MemoryConfig
+from ogx.providers.inline.skills.builtin.manifest import parse_skill_manifest
+from ogx.providers.inline.skills.builtin.validation import _SKILL_MD
 from ogx.providers.utils.responses.responses_store import (
     ResponsesStore,
     _OpenAIResponseObjectWithInputAndMessages,
@@ -129,6 +137,7 @@ class OpenAIResponsesImpl:
         prompts_api: Prompts,
         files_api: Files,
         connectors_api: Connectors,
+        skills_api: "Skills | None" = None,
         moderation_headers: dict[str, str] | None = None,
         vector_stores_config: VectorStoresConfig | None = None,
         compaction_config=None,
@@ -142,6 +151,7 @@ class OpenAIResponsesImpl:
         self.moderation_endpoint = moderation_endpoint
         self.moderation_headers = moderation_headers
         self.conversations_api = conversations_api
+        self.skills_api = skills_api
         self.tool_executor = ToolExecutor(
             tool_groups_api=tool_groups_api,
             tool_runtime_api=tool_runtime_api,
@@ -318,14 +328,21 @@ class OpenAIResponsesImpl:
         tools: list[OpenAIResponseInputTool] | None,
         previous_response_id: str | None,
         conversation: str | None,
-    ) -> tuple[str | list[OpenAIResponseInput], list[OpenAIMessageParam], ToolContext, OpenAIResponseUsage | None]:
+    ) -> tuple[
+        str | list[OpenAIResponseInput],
+        list[OpenAIMessageParam],
+        ToolContext,
+        OpenAIResponseUsage | None,
+        list[str] | None,
+    ]:
         """Process input with optional previous response context.
 
         Returns:
-            tuple: (all_input for storage, messages for chat completion, tool context, previous usage)
+            tuple: (all_input, messages, tool context, previous usage, inherited skills)
         """
         tool_context = ToolContext(tools)
         previous_usage: OpenAIResponseUsage | None = None
+        inherited_skills: list[str] | None = None
         if previous_response_id:
             previous_response: _OpenAIResponseObjectWithInputAndMessages = (
                 await self.responses_store.get_response_object(previous_response_id)
@@ -336,6 +353,7 @@ class OpenAIResponsesImpl:
                     "Cannot use an incomplete background response as previous_response_id."
                 )
             previous_usage = previous_response.usage
+            inherited_skills = previous_response.skills
             all_input = await self._prepend_previous_response(input, previous_response)
 
             if previous_response.messages:
@@ -387,7 +405,7 @@ class OpenAIResponsesImpl:
             all_input = input
             messages = await convert_response_input_to_chat_messages(all_input, files_api=self.files_api)
 
-        return all_input, messages, tool_context, previous_usage
+        return all_input, messages, tool_context, previous_usage, inherited_skills
 
     @staticmethod
     def _insert_memory_context(messages: list[OpenAIMessageParam], memory_context: str) -> None:
@@ -529,6 +547,38 @@ class OpenAIResponsesImpl:
                 response_id=response_id,
                 error=str(exc),
             )
+
+    async def _resolve_skill_instructions(self, skill_ids: list[str]) -> list[OpenAISystemMessageParam]:
+        """Resolve skill IDs and return system messages with their SKILL.md instructions.
+
+        For each skill, fetches the default version's zip content, parses
+        the SKILL.md manifest, and builds a system message from the skill
+        name, description, and full instructions body.
+        """
+
+        async def _resolve_one(skill_id: str) -> str:
+            assert self.skills_api is not None
+            skill = await self.skills_api.get_skill(skill_id)
+            resp = await self.skills_api.get_skill_version_content(skill_id, skill.default_version)
+
+            with zipfile.ZipFile(io.BytesIO(resp.body)) as zf:
+                if _SKILL_MD in zf.namelist():
+                    manifest = parse_skill_manifest(zf.read(_SKILL_MD).decode("utf-8"))
+                else:
+                    manifest = None
+
+            section = f"## Skill: {skill.name}"
+            if skill.description:
+                section += f"\n{skill.description}"
+            if manifest and manifest.instructions:
+                section += f"\n\n### Instructions\n{manifest.instructions}"
+            return section
+
+        results = await asyncio.gather(*[_resolve_one(sid) for sid in skill_ids])
+        parts = list(results)
+        if not parts:
+            return []
+        return [OpenAISystemMessageParam(content="\n\n".join(parts))]
 
     async def _prepend_prompt(
         self,
@@ -870,6 +920,7 @@ class OpenAIResponsesImpl:
         background: bool | None = False,
         prompt: OpenAIResponsePrompt | None = None,
         instructions: str | None = None,
+        skills: list[str] | None = None,
         previous_response_id: str | None = None,
         prompt_cache_key: str | None = None,
         conversation: str | None = None,
@@ -961,6 +1012,7 @@ class OpenAIResponsesImpl:
                 model=model,
                 prompt=prompt,
                 instructions=instructions,
+                skills=skills,
                 previous_response_id=previous_response_id,
                 conversation=conversation,
                 store=store,
@@ -992,6 +1044,7 @@ class OpenAIResponsesImpl:
             model=model,
             prompt=prompt,
             instructions=instructions,
+            skills=skills,
             previous_response_id=previous_response_id,
             prompt_cache_key=prompt_cache_key,
             store=store,
@@ -1083,6 +1136,7 @@ class OpenAIResponsesImpl:
         model: str,
         prompt: OpenAIResponsePrompt | None = None,
         instructions: str | None = None,
+        skills: list[str] | None = None,
         previous_response_id: str | None = None,
         conversation: str | None = None,
         store: bool | None = True,
@@ -1138,6 +1192,7 @@ class OpenAIResponsesImpl:
             tools=[],  # Will be populated when processing completes
             tool_choice=tool_choice,
             instructions=instructions,
+            skills=skills,
             max_tool_calls=max_tool_calls,
             reasoning=reasoning,
             metadata=metadata,
@@ -1163,6 +1218,7 @@ class OpenAIResponsesImpl:
                         model=model,
                         prompt=prompt,
                         instructions=instructions,
+                        skills=skills,
                         previous_response_id=previous_response_id,
                         conversation=conversation,
                         store=store,
@@ -1203,6 +1259,7 @@ class OpenAIResponsesImpl:
         model: str,
         prompt: OpenAIResponsePrompt | None = None,
         instructions: str | None = None,
+        skills: list[str] | None = None,
         previous_response_id: str | None = None,
         conversation: str | None = None,
         store: bool | None = True,
@@ -1246,6 +1303,7 @@ class OpenAIResponsesImpl:
             model=model,
             prompt=prompt,
             instructions=instructions,
+            skills=skills,
             previous_response_id=previous_response_id,
             store=store,
             temperature=temperature,
@@ -1318,6 +1376,7 @@ class OpenAIResponsesImpl:
         input: str | list[OpenAIResponseInput],
         model: str,
         instructions: str | None = None,
+        skills: list[str] | None = None,
         previous_response_id: str | None = None,
         prompt_cache_key: str | None = None,
         conversation: str | None = None,
@@ -1355,9 +1414,17 @@ class OpenAIResponsesImpl:
         assert max_infer_iters is not None, "max_infer_iters must not be None"
 
         # Input preprocessing
-        all_input, messages, tool_context, previous_usage = await self._process_input_with_previous_response(
-            input, tools, previous_response_id, conversation
-        )
+        (
+            all_input,
+            messages,
+            tool_context,
+            previous_usage,
+            inherited_skills,
+        ) = await self._process_input_with_previous_response(input, tools, previous_response_id, conversation)
+
+        # Inherit skills from previous response if not explicitly provided
+        if skills is None and inherited_skills:
+            skills = inherited_skills
 
         # Auto-compact if context_management is configured (runs on resolved history, not just new input)
         compacted_history_applied = False
@@ -1372,6 +1439,15 @@ class OpenAIResponsesImpl:
 
         if instructions:
             messages.insert(0, OpenAISystemMessageParam(content=instructions))
+
+        # Inject skill instructions after user instructions
+        if skills:
+            if not self.skills_api:
+                raise ServiceNotEnabledError("skills")
+            skill_messages = await self._resolve_skill_instructions(skills)
+            insert_idx = 1 if instructions else 0
+            for i, msg in enumerate(skill_messages):
+                messages.insert(insert_idx + i, msg)
 
         # Prepend reusable prompt (if provided)
         await self._prepend_prompt(messages, prompt)
@@ -1428,6 +1504,7 @@ class OpenAIResponsesImpl:
                 prompt=prompt,
                 prompt_cache_key=prompt_cache_key,
                 previous_response_id=previous_response_id,
+                skills=skills,
                 text=text,
                 max_infer_iters=max_infer_iters,
                 parallel_tool_calls=parallel_tool_calls,
@@ -1524,6 +1601,7 @@ class OpenAIResponsesImpl:
         model: str | None,
         input: str | list[OpenAIResponseInput] | None = None,
         instructions: str | None = None,
+        skills: list[str] | None = None,
         previous_response_id: str | None = None,
         prompt_cache_key: str | None = None,
         extra_body: dict | None = None,
