@@ -11,6 +11,7 @@ OGX uses GitHub Actions for Continuous Integration (CI). Below is a table detail
 | Commit Constraint Updates | [commit-constraint-updates.yml](commit-constraint-updates.yml) | Commit Constraint Updates |
 | Commit Recordings | [commit-recordings.yml](commit-recordings.yml) | Commit Recordings |
 | Dependabot constraint-dependencies | [dependabot-constraints.yml](dependabot-constraints.yml) | Update constraint-dependencies for Dependabot PR |
+| Disconnected Readiness | [disconnected-readiness.yml](disconnected-readiness.yml) | Disconnected Readiness |
 | Documentation Build | [docs-build.yml](docs-build.yml) | Build and validate documentation |
 | File Processors Tests | [file-processors-tests.yml](file-processors-tests.yml) | Run file processors integration tests |
 | Installer CI | [install-script-ci.yml](install-script-ci.yml) | Test the installation script |
@@ -31,7 +32,6 @@ OGX uses GitHub Actions for Continuous Integration (CI). Below is a table detail
 | Pre-commit | [pre-commit.yml](pre-commit.yml) | Run pre-commit checks |
 | Prepare release | [prepare-release.yml](prepare-release.yml) | Prepare release |
 | Test OGX Build | [providers-build.yml](providers-build.yml) | Test ogx build and list-deps |
-| Publish OpenAPI SDK to PyPI | [publish-openapi-sdk.yml](publish-openapi-sdk.yml) | Publish ogx-open-client to PyPI |
 | Build, test, and publish packages | [pypi.yml](pypi.yml) | Build, test, and publish packages |
 | Integration Tests (Record) | [record-integration-tests.yml](record-integration-tests.yml) | Auto-record missing test recordings for PR |
 | vLLM GPU Recording | [record-vllm-gpu-tests.yml](record-vllm-gpu-tests.yml) | GPU recording for gpt-oss:20b (${{ inputs.suite }} suite) |
