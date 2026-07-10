@@ -16,6 +16,7 @@ constraint-dependencies = [
     "h11>=0.16.0",
     "idna>=3.15",
     "joserfc>=1.6.8",
+    "langgraph-checkpoint>=4.1.1",
     "langgraph-sdk>=0.3.15",
     "langsmith>=0.8.18",
     "lxml>=6.1.0",                     # CVE-2026-41066: XML entity expansion with default resolve_entities=True
