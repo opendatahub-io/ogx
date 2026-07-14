@@ -45,7 +45,7 @@ dependencies = [
     "tiktoken",
     "pillow>=12.2.0",
     "h11>=0.16.0",
-    "python-multipart>=0.0.20",                       # For fastapi Form
+    "python-multipart>=0.0.27",                       # CVE-2026-42561: DoS via request.form limit bypass
     "uvicorn>=0.34.0",                                # server
     "opentelemetry-sdk>=1.30.0",                      # server
     "opentelemetry-exporter-otlp-proto-http>=1.30.0", # server
