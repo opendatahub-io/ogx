@@ -97,7 +97,7 @@ ogx_api = ["py.typed", "**/*.json", "**/*.yaml"]
 
 [tool.setuptools_scm]
 root = "../.."
-fallback_version = "1.2.0"
+fallback_version = "1.2.1"
 
 [tool.ruff]
 line-length = 120
