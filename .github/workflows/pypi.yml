@@ -230,11 +230,10 @@ jobs:
             path: client-sdks/openapi
             type: openapi-sdk
             registry: pypi
-          # TEMPORARY: ogx-client-typescript disabled until external repo has release-1.2.x branch
-          # - package: ogx-client-typescript
-          #   repo: ogx-ai/ogx-client-typescript
-          #   type: external
-          #   registry: npm
+          - package: ogx-client-typescript
+            repo: ogx-ai/ogx-client-typescript
+            type: external
+            registry: npm
 
     steps:
       # Skip check for package selection
@@ -764,10 +763,9 @@ jobs:
       matrix:
         include:
           # Order matters! Dependencies are published first
-          # TEMPORARY: ogx-client-typescript disabled until external repo has release-1.2.x branch
-          # - package: ogx-client-typescript
-          #   registry: npm
-          #   type: external
+          - package: ogx-client-typescript
+            registry: npm
+            type: external
           - package: ogx-client
             registry: pypi
             type: openapi-sdk

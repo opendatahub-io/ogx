@@ -4103,6 +4103,7 @@ wheels = [
 
 [[package]]
 name = "ogx"
+version = "1.2.1+rhaiv.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },
@@ -4389,7 +4390,7 @@ requires-dist = [
     { name = "nltk", marker = "extra == 'starter'", specifier = ">=3.10.0" },
     { name = "numpy", marker = "extra == 'starter'" },
     { name = "ogx-api", editable = "src/ogx_api" },
-    { name = "ogx-client", marker = "extra == 'client'", specifier = ">=1.1.3" },
+    { name = "ogx-client", marker = "extra == 'client'", specifier = "==1.2.1" },
     { name = "ogx-open-client", marker = "extra == 'openclient'", specifier = ">=1.0.2" },
     { name = "ollama", marker = "extra == 'starter'" },
     { name = "openai", specifier = ">=2.41.0" },
@@ -4601,6 +4602,7 @@ unit = [
 
 [[package]]
 name = "ogx-api"
+version = "1.2.1+rhaiv.0"
 source = { editable = "src/ogx_api" }
 dependencies = [
     { name = "fastapi" },
@@ -4625,28 +4627,19 @@ requires-dist = [
 
 [[package]]
 name = "ogx-client"
-version = "1.1.3"
+version = "1.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "anyio" },
-    { name = "click" },
-    { name = "distro" },
     { name = "fire" },
     { name = "httpx" },
-    { name = "pandas" },
-    { name = "prompt-toolkit" },
-    { name = "pyaml" },
     { name = "pydantic" },
+    { name = "python-dateutil" },
     { name = "requests" },
-    { name = "rich" },
-    { name = "sniffio" },
-    { name = "termcolor" },
-    { name = "tqdm" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/7b/ac/2fd77ab57ef26b8689d29d3f0a2e9020966282797b715ecf537806ca3486/ogx_client-1.1.3.tar.gz", hash = "sha256:d61a6f4cd996a5ce5cd6eb1389215f520cc1ca49d485b454d00faa021d4f4f0a", size = 440850, upload-time = "2026-06-24T15:07:27.342Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/4f/6b/5a22ea5b1193219cc6760acdd4085676c251096780dacbfbe3bd7d3381e1/ogx_client-1.2.1.tar.gz", hash = "sha256:1e22c29fff211c8f135da8f594407f01350ec00e9d0491d917b2fdd117d8b8c1", size = 588070, upload-time = "2026-07-14T19:20:43.71Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a7/f0/be21078666dc51b30a92dcd83e7711f923230b2cdd4a274994c36059233d/ogx_client-1.1.3-py3-none-any.whl", hash = "sha256:56390f857807f99c1927ab2de46d3427d63970d55533945c92e575fbe51d2252", size = 314011, upload-time = "2026-06-24T15:07:25.85Z" },
+    { url = "https://files.pythonhosted.org/packages/f3/1b/d912fcec167ec4d0b03b39579e2c0e4f8d712025f5bcb1e837b83a4e0ccc/ogx_client-1.2.1-py3-none-any.whl", hash = "sha256:b23c94e2ec5be59b359280ff58574d426662c22e0a6cbd51fc6357deb045e3ca", size = 1544659, upload-time = "2026-07-14T19:20:42.053Z" },
 ]
 
 [[package]]
@@ -5602,18 +5595,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/56/7a/a0f6bda783eb4df8e3dfd55973a1ac6d368a89178c300e1b5b91cd181e5e/py_partiql_parser-0.6.3.tar.gz", hash = "sha256:09cecf916ce6e3da2c050f0cb6106166de42c33d34a078ec2eb19377ea70389a", size = 17456, upload-time = "2025-10-18T13:56:13.441Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c9/33/a7cbfccc39056a5cf8126b7aab4c8bafbedd4f0ca68ae40ecb627a2d2cd3/py_partiql_parser-0.6.3-py2.py3-none-any.whl", hash = "sha256:deb0769c3346179d2f590dcbde556f708cdb929059fb654bad75f4cf6e07f582", size = 23752, upload-time = "2025-10-18T13:56:12.256Z" },
-]
-
-[[package]]
-name = "pyaml"
-version = "26.2.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pyyaml" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/38/fb/2b9590512a9d7763620d87171c7531d5295678ce96e57393614b91da8998/pyaml-26.2.1.tar.gz", hash = "sha256:489dd82997235d4cfcf76a6287fce2f075487d77a6567c271e8d790583690c68", size = 30653, upload-time = "2026-02-06T13:49:30.769Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/5d/f3/1f8651f23101e6fae41d0d504414c9722b0140bf0fc6acf87ac52e18aa41/pyaml-26.2.1-py3-none-any.whl", hash = "sha256:6261c2f0a2f33245286c794ad6ec234be33a73d2b05427079fd343e2812a87cf", size = 27211, upload-time = "2026-02-06T13:49:29.652Z" },
 ]
 
 [[package]]
