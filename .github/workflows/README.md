@@ -25,7 +25,7 @@ OGX uses GitHub Actions for Continuous Integration (CI). Below is a table detail
 | Launch GPU EC2 Runner | [launch-gpu-ec2-runner.yml](launch-gpu-ec2-runner.yml) | GPU recording for gpt-oss:20b (${{ inputs.suite }} suite) |
 | Create or Update Release Branch | [odh-create-or-update-release-branch.yml](odh-create-or-update-release-branch.yml) | Create or update release-${{ inputs.product_version }} from tag ${{ inputs.tag }} |
 | Create release tag | [odh-create-tag.yml](odh-create-tag.yml) | Create tag from version in pyproject.toml |
-| Dispatch Version Update to ODH Distribution | [odh-dispatch-version-update-to-odh-distribution.yml](odh-dispatch-version-update-to-odh-distribution.yml) | Dispatch version update to llama-stack-distribution (${{ github.ref_name }}) |
+| Dispatch Version Update to ODH Distribution | [odh-dispatch-version-update-to-odh-distribution.yml](odh-dispatch-version-update-to-odh-distribution.yml) | Dispatch version update to ogx-distribution (${{ github.ref_name }}) |
 | OpenAPI Generator SDK Validation | [openapi-generator-validation.yml](openapi-generator-validation.yml) | Validate OpenAPI Generator SDK generation |
 | OpenResponses Conformance Tests | [openresponses-conformance.yml](openresponses-conformance.yml) | Run OpenResponses conformance tests against ogx Responses API |
 | Post-release automation | [post-release.yml](post-release.yml) | Post-release automation |

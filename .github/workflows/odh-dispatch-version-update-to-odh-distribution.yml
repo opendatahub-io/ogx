@@ -1,6 +1,6 @@
 name: Dispatch Version Update to ODH Distribution
 
-run-name: "Dispatch version update to llama-stack-distribution (${{ github.ref_name }})"
+run-name: "Dispatch version update to ogx-distribution (${{ github.ref_name }})"
 
 on:
   push:
@@ -47,7 +47,7 @@ jobs:
           echo "product_version=${RELEASE_BRANCH}" >> "$GITHUB_OUTPUT"
           echo "Determined product version: ${RELEASE_BRANCH}"
 
-      - name: Send repository dispatch to llama-stack-distribution
+      - name: Send repository dispatch to ogx-distribution
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           TAG: ${{ github.ref_name }}
@@ -56,7 +56,7 @@ jobs:
         run: |
           echo "Dispatching create-or-update-release-branch with tag: ${TAG}, product version: ${PRODUCT_VERSION}"
 
-          gh api repos/opendatahub-io/llama-stack-distribution/dispatches \
+          gh api repos/opendatahub-io/ogx-distribution/dispatches \
             -f event_type=create-or-update-release-branch \
             -f "client_payload[tag]=${TAG}" \
             -f "client_payload[product_version]=${PRODUCT_VERSION}" \

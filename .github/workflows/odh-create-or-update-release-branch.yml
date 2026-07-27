@@ -50,6 +50,7 @@ jobs:
         run: |
           if ! git rev-parse "refs/tags/${TAG}" >/dev/null 2>&1; then
             echo "::error::Tag '${TAG}' does not exist in this repository"
+            echo "Ensure tag exists upstream and has been synced here"
             exit 1
           fi
           echo "Tag '${TAG}' exists"
