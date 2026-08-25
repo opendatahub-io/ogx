@@ -67,6 +67,7 @@ async def _transform_conversation_row(
         row is ``None`` if the transform failed and the row was skipped.
     """
     conv_id = str(conv_row.get("id"))
+    seen.add(conv_id)
     try:
         messages_row = (
             await msg_reader.fetch_messages(_CONVERSATION_MESSAGES_TABLE, conv_row["id"])
@@ -77,7 +78,6 @@ async def _transform_conversation_row(
     except Exception as exc:
         _handle_row_error("conversations", conv_id, exc, stats, opts.skip_errors)
         return None, []
-    seen.add(conv_row["id"])
     stats.transformed["conversations"] += 1
 
     item_rows: list[tuple[Any, ...]] = []
