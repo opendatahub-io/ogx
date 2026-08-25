@@ -12,6 +12,7 @@ An optional idempotency integration test runs against PRAXIS_TEST_DSN when set.
 """
 
 import os
+import uuid
 
 import pytest
 
@@ -135,13 +136,17 @@ class TestIdempotencyIntegration:
         writer = PraxisWriter(dsn=dsn, tables=_DEFAULT_TABLES)
         await writer.connect()
         try:
-            row = ("resp_idem", "t1", 1, "gpt-4o", "{}", "[]", "[]")
+            tenant_id = f"migration-test-{uuid.uuid4().hex}"
+            response_id = f"resp-{uuid.uuid4().hex}"
+            row = (response_id, tenant_id, 1, "gpt-4o", "{}", "[]", "[]")
             await writer.write_batch("responses", [row])
             await writer.write_batch("responses", [row])  # ON CONFLICT DO NOTHING
             count = await writer._conn.fetchval(
-                "SELECT count(*) FROM openai_responses WHERE tenant_id=$1 AND id=$2", "t1", "resp_idem"
+                "SELECT count(*) FROM openai_responses WHERE tenant_id=$1 AND id=$2", tenant_id, response_id
             )
             assert count == 1
         finally:
-            await writer._conn.execute("DELETE FROM openai_responses WHERE tenant_id='t1' AND id='resp_idem'")
+            await writer._conn.execute(
+                "DELETE FROM openai_responses WHERE tenant_id=$1 AND id=$2", tenant_id, response_id
+            )
             await writer.close()
