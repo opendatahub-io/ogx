@@ -151,8 +151,12 @@ def _handle_row_error(kind: str, row_id: str, exc: Exception, stats: _Stats, ski
     """Fail fast by default; under --skip-errors, record and continue."""
     if not skip_errors:
         raise RuntimeError(f"Failed to migrate {kind} row {row_id!r}: {exc}") from exc
-    stats.skipped.append((kind, row_id, str(exc)))
-    logger.warning("Skipping row after transform error", kind=kind, row_id=row_id, error=str(exc))
+    # Store only the exception type, never str(exc): a Pydantic ValidationError
+    # embeds the offending input value, which would leak source row data into
+    # logs and the skipped manifest (CWE-532).
+    error_code = type(exc).__name__
+    stats.skipped.append((kind, row_id, error_code))
+    logger.warning("Skipping row after transform error", kind=kind, row_id=row_id, error=error_code)
 
 
 def _build_progress() -> Progress:
