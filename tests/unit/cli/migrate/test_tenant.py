@@ -33,6 +33,11 @@ def test_empty_tenant_id_column_falls_back_to_owner_principal():
     assert deriver.derive("owner-x", "") == "owner-x"
 
 
+def test_whitespace_only_tenant_id_column_falls_back_to_owner_principal():
+    deriver = TenantDeriver()
+    assert deriver.derive("owner-x", "   ") == "owner-x"
+
+
 def test_disabled_mode_none_column_uses_owner_principal():
     deriver = TenantDeriver()
     # DISABLED mode surfaces tenant_id_col=None (physical column absent).

@@ -102,8 +102,12 @@ class TenantDeriver:
     def derive(self, owner_principal: str | None, tenant_id_col: str | None) -> str:
         if owner_principal is not None and owner_principal in self.explicit_map:
             return self.explicit_map[owner_principal]
-        raw = tenant_id_col if tenant_id_col not in (None, "") else owner_principal
-        return (raw or "").strip() or self.sentinel
+        # Normalize both candidates before applying precedence: a whitespace-only
+        # tenant_id column must fall back to owner_principal rather than collapsing
+        # different owners into the shared sentinel tenant.
+        source_tenant = (tenant_id_col or "").strip()
+        owner_tenant = (owner_principal or "").strip()
+        return source_tenant or owner_tenant or self.sentinel
 
 
 @dataclass(frozen=True)
