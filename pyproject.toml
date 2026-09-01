@@ -3,18 +3,18 @@ requires = ["setuptools>=61.0", "setuptools-scm>=8.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
-fallback_version = "0.4.7"
+fallback_version = "0.4.7.1"
 
 [tool.uv]
 required-version = ">=0.7.0"
 constraint-dependencies = [
     "pyasn1>=0.6.4",  # CVE-2026-30922, CVE-2026-59885: DoS via unbounded recursion
-    "starlette>=1.0.1",                # CVE-2026-48710
+    "starlette>=1.3.1",                # CVE-2026-48710, CVE-2026-54283: form() DoS
 ]
 
 [project]
 name = "llama_stack"
-version = "0.4.7+rhai0"
+version = "0.4.7.1+rhai0"
 authors = [{ name = "Meta Llama", email = "llama-oss@meta.com" }]
 description = "Llama Stack"
 readme = "README.md"
@@ -32,7 +32,7 @@ classifiers = [
 ]
 dependencies = [
     "PyYAML>=6.0",
-    "aiohttp>=3.14.0",                                  # CVE-2026-34993: CookieJar.load() RCE
+    "aiohttp>=3.14.3",                                  # CVE-2026-34993: RCE; CVE-2026-69244/69243: parser DoS, request smuggling
     "fastapi>=0.115.0,<1.0",                          # server
     "fire",                                           # for MCP in LLS client
     "httpx",
@@ -111,7 +111,7 @@ type_checking = [
     "sqlite-vec",
     "faiss-cpu",
     "lm-format-enforcer",
-    "mcp",
+    "mcp<2.0.0",
     "ollama",
     "llama-stack-client==0.4.7",
 ]
@@ -126,8 +126,8 @@ unit = [
     "aiosqlite",
     "aiohttp",
     "psycopg2-binary>=2.9.0",
-    "pypdf>=6.7.2",
-    "mcp",
+    "pypdf>=6.7.2,<6.15",
+    "mcp<2.0.0",
     "chardet",
     "sqlalchemy",
     "sqlalchemy[asyncio]>=2.0.41",
@@ -153,8 +153,8 @@ test = [
     "torchvision>=0.21.0",
     "chardet",
     "psycopg2-binary>=2.9.0",
-    "pypdf>=6.7.2",
-    "mcp",
+    "pypdf>=6.7.2,<6.15",
+    "mcp<2.0.0",
     "datasets>=4.0.0",
     "autoevals",
     "transformers",

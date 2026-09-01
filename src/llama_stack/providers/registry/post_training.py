@@ -32,7 +32,9 @@ def available_providers() -> list[ProviderSpec]:
                 "provider_type": "inline::torchtune-cpu",
                 "pip_packages": (
                     cast(list[str], torchtune_def["pip_packages"])
-                    + ["torch torchtune>=0.5.0 torchao>=0.12.0 --extra-index-url https://download.pytorch.org/whl/cpu"]
+                    + [
+                        "torch torchtune>=0.5.0 torchao>=0.12.0,<0.18.0 --extra-index-url https://download.pytorch.org/whl/cpu"
+                    ]
                 ),
             },
         ),
@@ -41,7 +43,7 @@ def available_providers() -> list[ProviderSpec]:
                 **torchtune_def,
                 "provider_type": "inline::torchtune-gpu",
                 "pip_packages": (
-                    cast(list[str], torchtune_def["pip_packages"]) + ["torch torchtune>=0.5.0 torchao>=0.12.0"]
+                    cast(list[str], torchtune_def["pip_packages"]) + ["torch torchtune>=0.5.0 torchao>=0.12.0,<0.18.0"]
                 ),
             },
         ),
