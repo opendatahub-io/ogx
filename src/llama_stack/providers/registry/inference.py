@@ -38,7 +38,8 @@ def available_providers() -> list[ProviderSpec]:
             provider_type="inline::sentence-transformers",
             # CrossEncoder depends on torchao.quantization
             pip_packages=[
-                "torch torchvision torchao>=0.12.0 --extra-index-url https://download.pytorch.org/whl/cpu",
+                # torchao 0.18.0 imports ScalingType from torch.nn.functional (needs torch>=2.9); cap it for torch 2.8.x
+                "torch torchvision torchao>=0.12.0,<0.18.0 --extra-index-url https://download.pytorch.org/whl/cpu",
                 "sentence-transformers --no-deps",
                 # required by some SentenceTransformers architectures for tensor rearrange/merge ops
                 "einops",
