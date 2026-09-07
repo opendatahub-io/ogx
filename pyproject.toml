@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "setuptools-scm>=8.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
-fallback_version = "1.2.4"
+fallback_version = "1.2.5.1"
 
 [tool.uv]
 required-version = ">=0.7.0"
@@ -19,7 +19,7 @@ constraint-dependencies = [
     "langgraph-checkpoint>=4.1.1",
     "langgraph-sdk>=0.3.15",
     "langsmith>=0.8.18",
-    "lxml>=6.1.0",                     # CVE-2026-41066: XML entity expansion with default resolve_entities=True
+    "lxml>=6.1.1",                     # Multiple CVEs
     "msgpack>=1.2.1",
     "pillow>=12.3.0",                  # CVE-2026-42311: PSD RCE; CVE-2026-55379/55380/54060: font/GD DoS
     "protobuf>=5.29.6",               # CVE-2025-4565 + CVE-2026-0994: parsing vulnerabilities
@@ -39,7 +39,7 @@ constraint-dependencies = [
 
 [project]
 name = "ogx"
-version = "1.2.4+rhaiv.0"
+version = "1.2.5.1+rhaiv.0"
 authors = [{ name = "The OGX Contributors", email = "contributors@ogx.dev" }]
 description = "Open-source, OpenAI-compatible API server with pluggable providers for any model and any infrastructure"
 readme = "README.md"
@@ -87,7 +87,7 @@ dependencies = [
 
 [project.optional-dependencies]
 client = [
-    "ogx-client==1.2.4", # Optional for library-only usage
+    "ogx-client==1.2.5", # Optional for library-only usage
 ]
 openclient = [
     "ogx-open-client>=1.0.2",
@@ -111,7 +111,7 @@ starter = [
     "langdetect",
     "markitdown[all]",
     "matplotlib",
-    "nltk>=3.10.0",                                      # CVE-2026-54293/CVE-2026-12243: path traversal in nltk.data.load()
+    "nltk>=3.10.3",                                      # Multiple CVEs
     "numpy",
     "ollama",
     "pandas",

@@ -19,12 +19,14 @@ from google.oauth2.credentials import Credentials
 from pydantic import BaseModel, ConfigDict, PrivateAttr
 
 from ogx.core.request_headers import NeedsRequestProviderData
+from ogx.core.storage.kvstore import kvstore_impl
 from ogx.log import get_logger
 from ogx.providers.remote.inference.vertexai import converters
 from ogx.providers.remote.inference.vertexai.config import (
     VertexAIConfig,
     VertexAIProviderDataValidator,
 )
+from ogx.providers.remote.inference.vertexai.thought_signature_store import ThoughtSignatureStore
 from ogx.providers.remote.inference.vertexai.utils import build_http_options as _build_http_options
 from ogx.providers.utils.inference.openai_compat import get_stream_options_for_telemetry
 from ogx.providers.utils.inference.prompt_adapter import localize_image_content
@@ -148,6 +150,7 @@ class VertexAIInferenceAdapter(NeedsRequestProviderData, BaseModel):
     _http_options: genai_types.HttpOptions | None = PrivateAttr(default=None)
     _http_options_initialized: bool = PrivateAttr(default=False)
     _model_cache: dict[str, Model] = PrivateAttr(default_factory=dict)
+    _thought_signature_store: ThoughtSignatureStore | None = PrivateAttr(default=None)
     embedding_model_metadata: dict[str, dict[str, int]] = {
         "publishers/google/models/text-embedding-004": {"embedding_dimension": 768, "context_length": 2048},
         "publishers/google/models/gemini-embedding-001": {"embedding_dimension": 3072, "context_length": 2048},
@@ -188,6 +191,9 @@ class VertexAIInferenceAdapter(NeedsRequestProviderData, BaseModel):
         _ensure_http_options() and create httpx.AsyncClient in the wrong event loop.
         The client will be created on first use via _get_client().
         """
+        if (ref := self.config.thought_signature_store) is not None:
+            self._thought_signature_store = ThoughtSignatureStore(await kvstore_impl(ref))
+            logger.info("VertexAI thought_signature store configured", backend=ref.backend, namespace=ref.namespace)
         try:
             # Don't create the client here - it will be created lazily on first use
             # This avoids calling _ensure_http_options() in the temporary startup event loop
@@ -207,6 +213,7 @@ class VertexAIInferenceAdapter(NeedsRequestProviderData, BaseModel):
         self._http_options = None
         self._http_options_initialized = False
         self._default_client = None
+        self._thought_signature_store = None
 
     async def register_model(self, model: Model) -> Model:
         provider_resource_id = model.provider_resource_id or model.identifier
@@ -553,7 +560,7 @@ class VertexAIInferenceAdapter(NeedsRequestProviderData, BaseModel):
         different vocabulary for the same concept:
 
         - ``"auto"``     → ``None``        (omit; let the API decide)
-        - ``"default"``  → ``"standard"``  (Gemini's default tier)
+        - ``"default"``  → ``None``        (omit; Vertex AI rejects ``"standard"``)
         - ``"flex"``     → ``"flex"``
         - ``"priority"`` → ``"priority"``
 
@@ -564,7 +571,7 @@ class VertexAIInferenceAdapter(NeedsRequestProviderData, BaseModel):
 
         _map: dict[str, str | None] = {
             "auto": None,
-            "default": "standard",
+            "default": None,
             "flex": "flex",
             "priority": "priority",
         }
@@ -635,12 +642,20 @@ class VertexAIInferenceAdapter(NeedsRequestProviderData, BaseModel):
             is_first_chunk = True
             last_chunk: Any = None
             async for chunk in stream:
-                yield converters.convert_gemini_stream_chunk_to_openai(
+                signatures: dict[str, str] = {}
+                openai_chunk = converters.convert_gemini_stream_chunk_to_openai(
                     chunk=chunk,
                     model=model,
                     completion_id=completion_id,
                     is_first_chunk=is_first_chunk,
+                    signatures_out=signatures,
                 )
+                # Persist before yield: code after yield only runs when the
+                # consumer pulls the next item, and is skipped if the stream is
+                # closed after this chunk (client has the call id already).
+                if signatures and self._thought_signature_store is not None:
+                    await self._thought_signature_store.put_many(signatures)
+                yield openai_chunk
                 is_first_chunk = False
                 last_chunk = chunk
 
@@ -767,7 +782,10 @@ class VertexAIInferenceAdapter(NeedsRequestProviderData, BaseModel):
         tools, tool_choice = self._resolve_deprecated_tools(params)
 
         messages = list(await asyncio.gather(*[self._localize_image_url(message) for message in params.messages]))
-        system_instruction, contents = converters.convert_openai_messages_to_gemini(messages)
+        store = self._thought_signature_store
+        call_ids = converters.collect_tool_call_ids(messages) if store else []
+        signature_by_call_id = (await store.get_many(call_ids) or None) if store and call_ids else None
+        system_instruction, contents = converters.convert_openai_messages_to_gemini(messages, signature_by_call_id)
         tools_input = converters.convert_openai_tools_to_gemini(tools)
         config = self._build_generation_config(
             params,
@@ -795,7 +813,13 @@ class VertexAIInferenceAdapter(NeedsRequestProviderData, BaseModel):
             contents=request_contents,
             config=config,
         )
-        return converters.convert_gemini_response_to_openai(response=response, model=params.model)
+        signatures: dict[str, str] = {}
+        completion = converters.convert_gemini_response_to_openai(
+            response=response, model=params.model, signatures_out=signatures
+        )
+        if store is not None and signatures:
+            await store.put_many(signatures)
+        return completion
 
     @staticmethod
     def _validate_completion_prompt(prompt: Any) -> list[str]:
