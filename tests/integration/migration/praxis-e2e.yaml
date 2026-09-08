@@ -1,0 +1,67 @@
+# Praxis (praxis-ai) config for the OGX→Praxis migration e2e.
+#
+# Purpose: stand up a real Praxis gateway pointed at the *target* Postgres
+# database so it stamps its own schema (idempotent CREATE TABLE IF NOT EXISTS)
+# for the three tables the migration writes to:
+#   - openai_responses            (openai_response_store filter)
+#   - openai_conversations        (both filters; identical idempotent DDL)
+#   - openai_conversation_items   (openai_conversations filter)
+#
+# Schema ownership stays with Praxis: the migration carries no
+# DDL and only runs after Praxis has created these tables. The e2e triggers the
+# lazy DDL with local-only GETs that 404 without touching any upstream:
+#   GET /v1/conversations/<id>  -> openai_conversations + openai_conversation_items
+#   GET /v1/responses/<id>      -> openai_responses
+#
+# Networking: the workflow runs this container with `--network host`, so the
+# Postgres service is reachable at 127.0.0.1:5432. The DSN below uses throwaway
+# CI credentials (ogx/ogx) against the dedicated `praxis` database — never real
+# credentials. `allow_private_database_url: true` is required because the host is
+# loopback, and `ssl_mode: disable` because the CI Postgres has no TLS.
+
+listeners:
+  - name: praxis-e2e
+    address: "0.0.0.0:8080"
+    filter_chains: [store-pipeline]
+
+filter_chains:
+  - name: store-pipeline
+    filters:
+      # Handles all /v1/conversations locally; creates openai_conversations +
+      # openai_conversation_items on first request.
+      - filter: openai_conversations
+        backend: postgres
+        database_url: "postgres://ogx:ogx@127.0.0.1:5432/praxis"
+        conversations_table: openai_conversations
+        items_table: openai_conversation_items
+        allow_private_database_url: true
+        ssl_mode: disable
+
+      # Classifies the request body; openai_response_store reads its metadata.
+      - filter: openai_responses_format
+
+      # Serves GET/DELETE /v1/responses locally, proxies POST upstream; creates
+      # openai_responses on first request. conversations_table points at the same
+      # openai_conversations table (its `messages` column) — idempotent with the
+      # conversations filter's DDL.
+      - filter: openai_response_store
+        backend: postgres
+        database_url: "postgres://ogx:ogx@127.0.0.1:5432/praxis"
+        responses_table: openai_responses
+        conversations_table: openai_conversations
+        allow_private_database_url: true
+        ssl_mode: disable
+
+      # The migration never POSTs to Praxis, so the upstream is never hit; a dummy
+      # cluster keeps the response-store chain valid. GET/DELETE short-circuit
+      # before routing.
+      - filter: router
+        routes:
+          - path_prefix: "/"
+            cluster: "unused-upstream"
+
+      - filter: load_balancer
+        clusters:
+          - name: "unused-upstream"
+            endpoints:
+              - "127.0.0.1:1"

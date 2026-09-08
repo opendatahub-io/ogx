@@ -26,6 +26,8 @@ from ogx_api.internal.sqlstore import ColumnType
 
 from .reader import _fields, _handle_row_error, _ReaderFor, _RunOptions, _SourceReader, _Stats
 from .target import (
+    ItemPositionAllocator,
+    PraxisItemRow,
     PraxisWriter,
     TenantDeriver,
     transform_conversation,
@@ -60,7 +62,7 @@ async def _transform_conversation_row(
     seen: set[str],
     stats: _Stats,
     opts: _RunOptions,
-) -> tuple[tuple[Any, ...] | None, list[tuple[Any, ...]]]:
+) -> tuple[tuple[Any, ...] | None, list[PraxisItemRow]]:
     """Transform one conversations-table row plus its legacy inline items.
 
     :returns: ``(praxis_conversation_row, praxis_item_rows)``. The conversation
@@ -80,7 +82,7 @@ async def _transform_conversation_row(
         return None, []
     stats.transformed["conversations"] += 1
 
-    item_rows: list[tuple[Any, ...]] = []
+    item_rows: list[PraxisItemRow] = []
     inline = conv_row.get("items") if items_in_scope else None
     if isinstance(inline, list):
         for position, element in enumerate(inline):
@@ -90,7 +92,7 @@ async def _transform_conversation_row(
                 _handle_row_error("items_legacy", f"{conv_id}[{position}]", exc, stats, opts.skip_errors)
                 continue
             stats.transformed["items_legacy"] += 1
-            item_rows.append(praxis_item.as_row())
+            item_rows.append(praxis_item)
     return praxis_conv.as_row(), item_rows
 
 
@@ -105,6 +107,7 @@ async def _migrate_known_conversations(
     stats: _Stats,
     progress: Progress,
     opts: _RunOptions,
+    position_allocator: ItemPositionAllocator,
 ) -> set[str]:
     """Pass A — openai_conversations ⋈ conversation_messages, plus legacy inline-item backfill.
 
@@ -116,20 +119,25 @@ async def _migrate_known_conversations(
     )
     async for batch in conv_reader.page(conv_table, "id", opts.batch_size):
         conv_out = []
-        item_out = []
         for conv_row in batch:
             stats.read["conversations"] += 1
             conv_dict, item_rows = await _transform_conversation_row(
-                conv_row, msg_reader, msg_available, tenant, items_in_scope, seen, stats, opts
+                conv_row,
+                msg_reader,
+                msg_available,
+                tenant,
+                items_in_scope,
+                seen,
+                stats,
+                opts,
             )
             if conv_dict is not None:
                 conv_out.append(conv_dict)
-            item_out.extend(item_rows)
+            for item in item_rows:
+                position_allocator.observe("items_legacy", item, retain=True)
         if writer is not None:
             if conv_out:
                 stats.submitted["conversations"] += await writer.write_batch("conversations", conv_out)
-            if item_out:
-                stats.submitted["items_legacy"] += await writer.write_batch("items", item_out)
         progress.update(task, advance=len(batch), **_fields(stats, "conversations"))
     return seen
 
@@ -179,11 +187,22 @@ async def _migrate_conversations(
     stats: _Stats,
     progress: Progress,
     opts: _RunOptions,
+    position_allocator: ItemPositionAllocator,
 ) -> None:
     seen: set[str] = set()
     if conv_available:
         seen = await _migrate_known_conversations(
-            conv_reader, msg_reader, writer, tenant, conv_table, msg_available, items_in_scope, stats, progress, opts
+            conv_reader,
+            msg_reader,
+            writer,
+            tenant,
+            conv_table,
+            msg_available,
+            items_in_scope,
+            stats,
+            progress,
+            opts,
+            position_allocator,
         )
 
     if not (msg_available and msg_reader):
@@ -203,6 +222,7 @@ async def _run_conversations_phase(
     stats: _Stats,
     progress: Progress,
     opts: _RunOptions,
+    position_allocator: ItemPositionAllocator,
 ) -> None:
     conv_reader = await reader_for(conversations_ref.backend, conv_table)
     conv_available = await conv_reader.prepare(conv_table, _CONVERSATIONS_COLUMNS, "id")
@@ -234,4 +254,5 @@ async def _run_conversations_phase(
         stats,
         progress,
         opts,
+        position_allocator,
     )

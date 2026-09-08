@@ -23,6 +23,7 @@ OGX uses GitHub Actions for Continuous Integration (CI). Below is a table detail
 | Integration Tests (Replay) | [integration-tests.yml](integration-tests.yml) | Run the integration test suites from tests/integration in replay mode |
 | Vector IO Integration Tests | [integration-vector-io-tests.yml](integration-vector-io-tests.yml) | Run the integration test suite with various VectorIO providers |
 | Launch GPU EC2 Runner | [launch-gpu-ec2-runner.yml](launch-gpu-ec2-runner.yml) | GPU recording for gpt-oss:20b (${{ inputs.suite }} suite) |
+| Praxis Migration E2E | [migration-e2e-praxis.yml](migration-e2e-praxis.yml) | End-to-end OGX->Praxis migration against real Postgres + Praxis |
 | Create or Update Release Branch | [odh-create-or-update-release-branch.yml](odh-create-or-update-release-branch.yml) | Create or update release-${{ inputs.product_version }} from tag ${{ inputs.tag }} |
 | Create release tag | [odh-create-tag.yml](odh-create-tag.yml) | Create tag from version in pyproject.toml |
 | Dispatch Version Update to ODH Distribution | [odh-dispatch-version-update-to-odh-distribution.yml](odh-dispatch-version-update-to-odh-distribution.yml) | Dispatch version update to ogx-distribution (${{ github.ref_name }}) |

@@ -44,7 +44,7 @@ from .conversations import _run_conversations_phase
 from .items import _run_items_phase
 from .reader import _build_progress, _ReaderFor, _RunOptions, _SourceReader, _Stats
 from .responses import _run_responses_phase
-from .target import PraxisWriter, TenantDeriver
+from .target import ItemPositionAllocator, PraxisWriter, TenantDeriver
 
 logger = get_logger(name=__name__, category="cli")
 
@@ -59,6 +59,11 @@ def _parse_tables(raw: str) -> set[str]:
     if invalid:
         raise ValueError(
             f"Failed to parse --tables: unknown table(s) {sorted(invalid)}; valid values are {list(_VALID_TABLES)}"
+        )
+    if "items" in names and "conversations" not in names:
+        raise ValueError(
+            "Failed to parse --tables: 'items' requires 'conversations' because legacy inline items are migrated "
+            "during the conversations phase"
         )
     return names
 
@@ -157,13 +162,6 @@ async def _run(args: argparse.Namespace) -> None:
             "nothing to migrate"
         )
 
-    if "items" in tables_scope and "conversations" not in tables_scope:
-        logger.warning(
-            "Legacy inline items are backfilled only during the conversations phase; with 'items' in scope but "
-            "'conversations' excluded, deprecated openai_conversations.items rows will NOT be migrated "
-            "(the conversation_items straight-copy still runs)"
-        )
-
     writer: PraxisWriter | None = None
     if not args.dry_run:
         dsn = args.praxis_dsn or os.environ.get("PRAXIS_DATABASE_URL")
@@ -203,6 +201,7 @@ async def _run(args: argparse.Namespace) -> None:
     reader_for: _ReaderFor = _reader_for
 
     opts = _RunOptions(batch_size=args.batch_size, skip_errors=args.skip_errors)
+    position_allocator = ItemPositionAllocator()
     stats = _Stats()
     try:
         with _build_progress() as progress:
@@ -222,10 +221,20 @@ async def _run(args: argparse.Namespace) -> None:
                     stats,
                     progress,
                     opts,
+                    position_allocator,
                 )
 
             if "items" in tables_scope and conversations_ref is not None:
-                await _run_items_phase(conversations_ref, reader_for, writer, tenant, stats, progress, opts)
+                await _run_items_phase(
+                    conversations_ref,
+                    reader_for,
+                    writer,
+                    tenant,
+                    stats,
+                    progress,
+                    opts,
+                    position_allocator,
+                )
     finally:
         if writer is not None:
             await writer.close()
@@ -274,7 +283,10 @@ class PraxisMigrate(Subcommand):
             "--tables",
             type=str,
             default="responses,conversations,items",
-            help="Comma-separated target tables to load (subset of responses,conversations,items).",
+            help=(
+                "Comma-separated target tables to load (subset of responses,conversations,items); selecting items "
+                "also requires conversations so legacy inline items participate in position allocation."
+            ),
         )
         p.add_argument(
             "--praxis-responses-table",

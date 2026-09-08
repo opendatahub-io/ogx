@@ -13,6 +13,8 @@ what OGX's responses/conversations stores actually persist.
 import json
 
 from ogx.cli.migrate.praxis.target import (
+    ItemPositionAllocator,
+    PraxisItemRow,
     TenantDeriver,
     transform_conversation,
     transform_item,
@@ -255,6 +257,35 @@ class TestTransformItem:
         assert as_row[2] == "conv_1"
         assert as_row[4] == 200
         assert as_row[5] == 3
+
+
+class TestItemPositionAllocator:
+    def test_collision_preserves_source_position_order(self) -> None:
+        allocator = ItemPositionAllocator()
+        first = PraxisItemRow("item_a", "tenant_a", "conv_1", "{}", 100, 5)
+        duplicate = PraxisItemRow("item_b", "tenant_a", "conv_1", "{}", 101, 5)
+        earlier = PraxisItemRow("item_c", "tenant_a", "conv_1", "{}", 102, 0)
+        other_conversation = PraxisItemRow("item_d", "tenant_a", "conv_2", "{}", 103, 5)
+
+        allocator.observe("items_legacy", first)
+        for item in (duplicate, earlier, other_conversation):
+            allocator.observe("items", item)
+
+        allocator.finalize()
+        allocated = [
+            allocator.allocate("items_legacy", first),
+            allocator.allocate("items", duplicate),
+            allocator.allocate("items", earlier),
+            allocator.allocate("items", other_conversation),
+        ]
+        positions = {item.item_id: item.position for item in allocated}
+        assert positions == {"item_a": 5, "item_b": 6, "item_c": 0, "item_d": 5}
+        conversation_items = [item for item in allocated if item.conversation_id == "conv_1"]
+        assert [item.item_id for item in sorted(conversation_items, key=lambda item: item.position)] == [
+            "item_c",
+            "item_a",
+            "item_b",
+        ]
 
 
 class TestTransformLegacyInlineItem:
