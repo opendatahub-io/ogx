@@ -80,31 +80,34 @@ async def _migrate_items(
     inline items cannot be cheaply re-read here, so the conversations phase
     retains those comparatively rare rows in the shared allocator.
     """
-    task = progress.add_task("items", total=await reader.count(_CONVERSATION_ITEMS_TABLE), **_fields(stats, "items"))
-    skipped_item_ids: set[str] = set()
-    async for batch in reader.page(_CONVERSATION_ITEMS_TABLE, "id", opts.batch_size):
-        for row in batch:
-            stats.read["items"] += 1
-            try:
-                praxis_item = transform_item(row, tenant)
-            except Exception as exc:
-                item_id = str(row.get("id"))
-                _handle_row_error("items", item_id, exc, stats, opts.skip_errors)
-                skipped_item_ids.add(item_id)
-                continue
-            stats.transformed["items"] += 1
-            position_allocator.observe("items", praxis_item)
-        progress.update(task, advance=len(batch), **_fields(stats, "items"))
+    async with reader.snapshot() as snapshot:
+        task = progress.add_task(
+            "items", total=await snapshot.count(_CONVERSATION_ITEMS_TABLE), **_fields(stats, "items")
+        )
+        skipped_item_ids: set[str] = set()
+        async for batch in snapshot.page(_CONVERSATION_ITEMS_TABLE, "id", opts.batch_size):
+            for row in batch:
+                stats.read["items"] += 1
+                try:
+                    praxis_item = transform_item(row, tenant)
+                except Exception as exc:
+                    item_id = str(row.get("id"))
+                    _handle_row_error("items", item_id, exc, stats, opts.skip_errors)
+                    skipped_item_ids.add(item_id)
+                    continue
+                stats.transformed["items"] += 1
+                position_allocator.observe("items", praxis_item)
+            progress.update(task, advance=len(batch), **_fields(stats, "items"))
 
-    await _write_retained_items(writer, stats, opts, position_allocator)
-    if writer is not None:
-        async for batch in reader.page(_CONVERSATION_ITEMS_TABLE, "id", opts.batch_size):
-            out_rows = [
-                position_allocator.allocate("items", transform_item(row, tenant)).as_row()
-                for row in batch
-                if str(row.get("id")) not in skipped_item_ids
-            ]
-            await _write_rows(writer, stats, opts, "items", out_rows)
+        await _write_retained_items(writer, stats, opts, position_allocator)
+        if writer is not None:
+            async for batch in snapshot.page(_CONVERSATION_ITEMS_TABLE, "id", opts.batch_size):
+                out_rows = [
+                    position_allocator.allocate("items", transform_item(row, tenant)).as_row()
+                    for row in batch
+                    if str(row.get("id")) not in skipped_item_ids
+                ]
+                await _write_rows(writer, stats, opts, "items", out_rows)
     progress.update(task, **_fields(stats, "items"))
 
 

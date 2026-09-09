@@ -37,12 +37,18 @@ from ogx.cli.migrate.praxis.conversations import (
     _migrate_conversations,
 )
 from ogx.cli.migrate.praxis.items import _CONVERSATION_ITEMS_TABLE, _ITEMS_COLUMNS, _migrate_items
-from ogx.cli.migrate.praxis.reader import _build_progress, _RunOptions, _SourceReader, _Stats
+from ogx.cli.migrate.praxis.reader import _build_progress, _read_schema, _RunOptions, _SourceReader, _Stats
 from ogx.cli.migrate.praxis.responses import _RESPONSES_COLUMNS, _migrate_responses
-from ogx.cli.migrate.praxis.target import ItemPositionAllocator, PraxisWriter, TenantDeriver
+from ogx.cli.migrate.praxis.target import (
+    ItemPositionAllocator,
+    PraxisWriter,
+    TenantDeriver,
+    transform_legacy_inline_item,
+)
 from ogx.core.datatypes import TenancyConfig, TenancyMode
 from ogx.core.storage.datatypes import ResponsesStoreReference, SqliteSqlStoreConfig, SqlStoreReference
 from ogx.core.storage.sqlstore.authorized_sqlstore import set_default_tenancy_config
+from ogx.core.storage.sqlstore.sqlalchemy_sqlstore import SqlAlchemySqlStoreImpl
 from ogx.core.storage.sqlstore.sqlstore import (
     get_system_sqlstore,
     register_sqlstore_backends,
@@ -108,6 +114,23 @@ class _CapturingWriter(PraxisWriter):
         else:
             self.batches.setdefault(kind, []).extend(rows)
         return len(rows)
+
+
+class _SourceMutatingWriter(_CapturingWriter):
+    """Insert a source row when the retained items finish writing."""
+
+    def __init__(self, source: SqlAlchemySqlStoreImpl, inserted_row: dict[str, Any]) -> None:
+        super().__init__()
+        self._source = source
+        self._inserted_row = inserted_row
+        self._mutated = False
+
+    async def write_batch(self, kind: str, rows: Sequence[tuple[Any, ...]]) -> int:
+        submitted = await super().write_batch(kind, rows)
+        if kind == "items" and not self._mutated:
+            await self._source.insert(_CONVERSATION_ITEMS_TABLE, self._inserted_row)
+            self._mutated = True
+        return submitted
 
 
 def _disabled_progress():
@@ -180,6 +203,72 @@ async def test_golden_matches_pipeline(mode: TenancyMode):
     expected = _compare.load_golden(mode.value)
     problems = _compare.diff_normalized(expected, normalized)
     assert not problems, "Migrated rows do not match golden:\n" + "\n".join(problems)
+
+
+async def test_item_passes_share_one_source_snapshot():
+    with TemporaryDirectory() as tmp:
+        backend = f"sql_snapshot_{uuid4().hex}"
+        register_sqlstore_backends({backend: SqliteSqlStoreConfig(db_path=f"{tmp}/source.db")})
+        try:
+            ref = SqlStoreReference(backend=backend, table_name=_CONVERSATION_ITEMS_TABLE)
+            source = await get_system_sqlstore(ref)
+            assert isinstance(source, SqlAlchemySqlStoreImpl)
+            await source.create_table(_CONVERSATION_ITEMS_TABLE, _read_schema(_ITEMS_COLUMNS, "id", False))
+            await source.insert(
+                _CONVERSATION_ITEMS_TABLE,
+                {
+                    "id": "item_1",
+                    "conversation_id": "conv_1",
+                    "created_at": 100,
+                    "sort_order": 0,
+                    "item_data": {"type": "message"},
+                    "owner_principal": "tenant_1",
+                    "access_attributes": None,
+                },
+            )
+
+            reader = _SourceReader(source, tenant_enabled=False)
+            assert await reader.prepare(_CONVERSATION_ITEMS_TABLE, _ITEMS_COLUMNS, "id")
+            inserted_row = {
+                "id": "item_2",
+                "conversation_id": "conv_1",
+                "created_at": 101,
+                "sort_order": 1,
+                "item_data": {"type": "message"},
+                "owner_principal": "tenant_1",
+                "access_attributes": None,
+            }
+            writer = _SourceMutatingWriter(source, inserted_row)
+            allocator = ItemPositionAllocator()
+            allocator.observe(
+                "items_legacy",
+                transform_legacy_inline_item(
+                    {"id": "item_legacy", "type": "message"},
+                    position=0,
+                    conv_row={"id": "conv_legacy", "created_at": 99, "owner_principal": "tenant_1"},
+                    tenant=TenantDeriver(),
+                ),
+                retain=True,
+            )
+
+            with _disabled_progress() as progress:
+                await _migrate_items(
+                    reader,
+                    writer,
+                    TenantDeriver(),
+                    _Stats(),
+                    progress,
+                    _RunOptions(batch_size=1, skip_errors=False),
+                    allocator,
+                )
+
+            assert {row[0] for row in writer.batches["items"]} == {"item_1", "item_legacy"}
+            assert {row["id"] for row in (await source.fetch_all(_CONVERSATION_ITEMS_TABLE)).data} == {
+                "item_1",
+                "item_2",
+            }
+        finally:
+            await shutdown_sqlstore_backends()
 
 
 def _sample_batches():

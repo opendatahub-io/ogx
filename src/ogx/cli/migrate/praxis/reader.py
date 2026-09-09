@@ -14,6 +14,7 @@ modules (:mod:`.responses`, :mod:`.conversations`,
 
 from collections import Counter
 from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -25,7 +26,8 @@ from rich.progress import (
     TextColumn,
     TimeElapsedColumn,
 )
-from sqlalchemy import func, inspect, select
+from sqlalchemy import func, inspect, select, text
+from sqlalchemy.ext.asyncio.session import AsyncSession
 
 from ogx.core.storage.sqlstore.sqlalchemy_sqlstore import SqlAlchemySqlStoreImpl
 from ogx.log import get_logger
@@ -48,6 +50,36 @@ def _read_schema(
     if tenant_enabled:
         schema["tenant_id"] = ColumnType.STRING
     return schema
+
+
+class _SourceSnapshot:
+    """Read tables through one source transaction."""
+
+    def __init__(self, impl: SqlAlchemySqlStoreImpl, session: AsyncSession) -> None:
+        self._impl = impl
+        self._session = session
+
+    async def count(self, table: str) -> int:
+        table_obj = self._impl.metadata.tables[table]
+        result = await self._session.execute(select(func.count()).select_from(table_obj))
+        return int(result.scalar_one())
+
+    async def page(self, table: str, key_col: str, batch_size: int) -> AsyncIterator[list[dict[str, Any]]]:
+        """Yield keyset-paginated batches from the transaction's snapshot."""
+        table_obj = self._impl.metadata.tables[table]
+        after: str | None = None
+        while True:
+            query = select(table_obj).order_by(table_obj.c[key_col].asc()).limit(batch_size)
+            if after is not None:
+                query = query.where(table_obj.c[key_col] > after)
+            result = await self._session.execute(query)
+            rows = [dict(row._mapping) for row in result]
+            if not rows:
+                return
+            yield rows
+            after = rows[-1][key_col]
+            if len(rows) < batch_size:
+                return
 
 
 class _SourceReader:
@@ -101,6 +133,20 @@ class _SourceReader:
         async with self._impl.async_session() as session:
             result = await session.execute(select(func.count()).select_from(table_obj))
             return int(result.scalar_one())
+
+    @asynccontextmanager
+    async def snapshot(self) -> AsyncIterator[_SourceSnapshot]:
+        """Keep all reads in one stable source transaction."""
+        await self._impl._ensure_engine()
+        assert self._impl._engine is not None
+        async with self._impl._engine.connect() as connection:
+            if connection.dialect.name == "postgresql":
+                connection = await connection.execution_options(isolation_level="REPEATABLE READ")
+            async with AsyncSession(bind=connection) as session, session.begin():
+                # sqlite3's legacy transaction mode does not begin on SELECT.
+                if connection.dialect.name == "sqlite":
+                    await session.execute(text("BEGIN"))
+                yield _SourceSnapshot(self._impl, session)
 
     async def page(self, table: str, key_col: str, batch_size: int) -> AsyncIterator[list[dict[str, Any]]]:
         """Yield successive batches ordered by ``key_col`` using keyset pagination."""
