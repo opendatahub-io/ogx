@@ -1,0 +1,178 @@
+name: Praxis Migration E2E
+
+run-name: End-to-end OGX->Praxis migration against real Postgres + Praxis
+
+# Manual only: the target is a real Praxis (praxis-ai) container image.
+# The maintainer supplies the image ref (and Postgres version) at dispatch time.
+# See tests/integration/migration/ for the test design.
+on:
+  workflow_dispatch:
+    inputs:
+      praxis_image:
+        description: "Praxis (praxis-ai) container image ref, e.g. ghcr.io/praxis-proxy/ai:sha-abc123"
+        required: true
+        type: string
+      postgres_version:
+        description: "Postgres image tag used for both the source (ogx) and target (praxis) databases"
+        required: false
+        default: "15"
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # One leg per source tenancy mode (disabled, single, and multi). The
+        # target (Praxis) schema always carries tenant_id; the mode changes how
+        # the migration DERIVES it, so each leg compares against its own golden
+        # fixture.
+        tenancy: [disabled, single, multi]
+
+    services:
+      postgres:
+        image: postgres:${{ inputs.postgres_version }}
+        env:
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # Source database (the OGX deployment the migration reads). These feed the
+      # ${env.*} placeholders in run-with-postgres-store.yaml.
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ogx
+      POSTGRES_USER: ogx
+      POSTGRES_PASSWORD: ogx
+      # Source tenancy. seed_source.py and the CLI both read these (same config),
+      # so the seed and the read agree on whether a tenant_id column exists.
+      OGX_TENANCY_MODE: ${{ matrix.tenancy }}
+      OGX_DEFAULT_TENANT_ID: ${{ matrix.tenancy == 'single' && 'acme-corp' || '' }}
+      # Target database (the Praxis-owned schema the migration writes). Injected
+      # via env, never on the CLI, per the ADR runbook (DSNs must not land in
+      # process listings / Job specs).
+      PRAXIS_DATABASE_URL: postgresql://ogx:ogx@localhost:5432/praxis
+      # Consumed by the assertion test (conftest.py) to pick the golden fixture.
+      PRAXIS_TEST_DSN: postgresql://ogx:ogx@localhost:5432/praxis
+      MIGRATION_TENANCY_MODE: ${{ matrix.tenancy }}
+      SOURCE_CONFIG: src/ogx/distributions/ci-tests/run-with-postgres-store.yaml
+      PRAXIS_CONFIG_HOST: tests/integration/migration/praxis-e2e.yaml
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install dependencies
+        uses: ./.github/actions/setup-runner
+        with:
+          python-version: "3.12"
+
+      - name: Create target (praxis) database
+        run: |
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends postgresql-client
+          PGPASSWORD=ogx psql -h localhost -p 5432 -U ogx -d ogx -v ON_ERROR_STOP=1 \
+            -c "CREATE DATABASE praxis;"
+
+      - name: Start Praxis gateway
+        id: praxis-image
+        env:
+          PRAXIS_IMAGE: ${{ inputs.praxis_image }}
+        run: |
+          docker pull "$PRAXIS_IMAGE"
+          PRAXIS_IMAGE_DIGEST=$(docker image inspect \
+            --format '{{index .RepoDigests 0}}' "$PRAXIS_IMAGE")
+          if [[ ! "$PRAXIS_IMAGE_DIGEST" =~ @sha256:[a-f0-9]{64}$ ]]; then
+            echo "Failed to resolve Praxis image digest for $PRAXIS_IMAGE" >&2
+            exit 1
+          fi
+          echo "image_ref=$PRAXIS_IMAGE_DIGEST" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Praxis image"
+            echo
+            echo '```'
+            echo "$PRAXIS_IMAGE_DIGEST"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Using Praxis image: $PRAXIS_IMAGE_DIGEST"
+          docker run -d --name praxis --network host \
+            -v "$GITHUB_WORKSPACE/${PRAXIS_CONFIG_HOST}:/etc/praxis/config.yaml:ro" \
+            "$PRAXIS_IMAGE_DIGEST" --config /etc/praxis/config.yaml
+          docker ps --filter name=praxis
+
+      - name: Wait for Praxis and trigger schema DDL
+        # Praxis owns the schema and creates each table lazily on first request
+        # (CREATE TABLE IF NOT EXISTS). Local-only GETs 404 without touching any
+        # upstream and, in doing so, stamp the three target tables. A 404/200
+        # therefore signals both "proxy is up" and "DDL has run".
+        run: |
+          trigger() {
+            local path="$1" name="$2" code
+            for i in $(seq 1 45); do
+              code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8080${path}" || echo 000)
+              case "$code" in
+                200|404) echo "OK ${name}: HTTP ${code} (table stamped)"; return 0 ;;
+                *) echo "waiting for ${name} (attempt ${i}/45, HTTP ${code})"; sleep 2 ;;
+              esac
+            done
+            echo "Failed to reach Praxis for ${name} within timeout" >&2
+            docker logs praxis || true
+            return 1
+          }
+          trigger "/v1/conversations/ddl_probe" "openai_conversations + openai_conversation_items"
+          trigger "/v1/responses/ddl_probe" "openai_responses"
+
+      - name: Verify target tables exist and are empty
+        run: |
+          for t in openai_responses openai_conversations openai_conversation_items; do
+            count=$(PGPASSWORD=ogx psql -h localhost -p 5432 -U ogx -d praxis -tA \
+              -v ON_ERROR_STOP=1 -c "SELECT count(*) FROM ${t};")
+            echo "${t}: ${count} rows"
+            if [ "${count}" != "0" ]; then
+              echo "Failed precondition: ${t} should be empty before migration" >&2
+              exit 1
+            fi
+          done
+
+      - name: Seed OGX source database
+        run: |
+          uv run python tests/integration/migration/seed_source.py "$SOURCE_CONFIG"
+
+      - name: Run initial migration
+        run: |
+          uv run ogx migrate praxis "$SOURCE_CONFIG" \
+            --orphan-created-at 999
+
+      - name: Assert initial migration
+        run: uv run pytest -sv tests/integration/migration/test_migration_e2e.py
+
+      - name: Rerun migration to verify idempotency
+        run: |
+          uv run ogx migrate praxis "$SOURCE_CONFIG" \
+            --orphan-created-at 999
+
+      - name: Assert migration remains unchanged
+        run: uv run pytest -sv tests/integration/migration/test_migration_e2e.py
+
+      - name: Dump Praxis logs on failure
+        if: ${{ failure() }}
+        run: docker logs praxis || true
+
+      - name: Stop Praxis
+        if: ${{ always() }}
+        run: docker rm -f praxis || true

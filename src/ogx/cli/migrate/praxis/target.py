@@ -19,8 +19,9 @@ config/store bootstrap live in ``cmd.py``.
 
 import json
 import re
+from collections import deque
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 import asyncpg  # type: ignore[import-untyped]
@@ -156,6 +157,95 @@ class PraxisItemRow:
     def as_row(self) -> tuple[Any, ...]:
         """Positional tuple matching the items INSERT column order."""
         return (self.item_id, self.tenant_id, self.conversation_id, self.item_data, self.created_at, self.position)
+
+
+@dataclass(frozen=True)
+class _PendingItemPosition:
+    sequence: int
+    source: str
+    item_id: str
+    tenant_id: str
+    conversation_id: str
+    position: int
+
+
+class ItemPositionAllocator:
+    """Normalize item positions without changing their source ordering.
+
+    Items are collected across both OGX storage representations before any are
+    allocated. Within each tenant/conversation they are ordered by source
+    position and item id, then shifted upward only when required for Praxis's
+    unique-position constraint. Deferring allocation is necessary because the
+    source table is paged by item id rather than position: allocating online can
+    let an early collision take a position belonging to a later source row.
+    """
+
+    def __init__(self) -> None:
+        self._pending: list[_PendingItemPosition] = []
+        self._retained: dict[str, list[PraxisItemRow]] = {}
+        self._assigned: dict[tuple[str, str, str, str, int], deque[int]] | None = None
+
+    def observe(self, source: str, item: PraxisItemRow, *, retain: bool = False) -> None:
+        if self._assigned is not None:
+            raise RuntimeError("Failed to observe an item after positions were finalized")
+        self._pending.append(
+            _PendingItemPosition(
+                sequence=len(self._pending),
+                source=source,
+                item_id=item.item_id,
+                tenant_id=item.tenant_id,
+                conversation_id=item.conversation_id,
+                position=item.position,
+            )
+        )
+        if retain:
+            self._retained.setdefault(source, []).append(item)
+
+    def finalize(self) -> None:
+        """Assign stable positions after every source item has been observed."""
+        if self._assigned is not None:
+            return
+
+        grouped: dict[tuple[str, str], list[_PendingItemPosition]] = {}
+        for entry in self._pending:
+            grouped.setdefault((entry.tenant_id, entry.conversation_id), []).append(entry)
+
+        assigned: dict[tuple[str, str, str, str, int], deque[int]] = {}
+        for pending in grouped.values():
+            pending.sort(key=lambda entry: (entry.position, entry.item_id, entry.sequence))
+            previous_position: int | None = None
+            for entry in pending:
+                position = entry.position
+                if previous_position is not None and position <= previous_position:
+                    position = previous_position + 1
+                assignment_key = (
+                    entry.source,
+                    entry.item_id,
+                    entry.tenant_id,
+                    entry.conversation_id,
+                    entry.position,
+                )
+                assigned.setdefault(assignment_key, deque()).append(position)
+                previous_position = position
+
+        self._assigned = assigned
+        self._pending.clear()
+
+    def allocate(self, source: str, item: PraxisItemRow) -> PraxisItemRow:
+        if self._assigned is None:
+            raise RuntimeError("Failed to allocate an item before positions were finalized")
+        assignment_key = (source, item.item_id, item.tenant_id, item.conversation_id, item.position)
+        positions = self._assigned.get(assignment_key)
+        if not positions:
+            raise RuntimeError(f"Failed to allocate unobserved item {item.item_id!r}")
+        position = positions.popleft()
+        if not positions:
+            del self._assigned[assignment_key]
+        return item if position == item.position else replace(item, position=position)
+
+    def allocate_retained(self, source: str) -> list[PraxisItemRow]:
+        """Allocate rows retained because their source is not re-readable later."""
+        return [self.allocate(source, item) for item in self._retained.pop(source, [])]
 
 
 def transform_response(row: Mapping[str, Any], tenant: TenantDeriver) -> PraxisResponseRow:

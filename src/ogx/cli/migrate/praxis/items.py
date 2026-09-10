@@ -6,11 +6,14 @@
 
 """``ogx migrate praxis`` — items phase: conversation_items -> Praxis.
 
-Straight copy of the ``conversation_items`` table (lives on the conversations
-backend). Legacy inline items stored directly on an ``openai_conversations``
-row are handled separately, as a backfill during the conversations phase —
-see :mod:`.conversations`.
+Copies the ``conversation_items`` table (which lives on the conversations
+backend) while normalizing positions that would violate Praxis's per-
+conversation uniqueness constraint. Legacy inline items stored directly on an
+``openai_conversations`` row are handled separately, as a backfill during the
+conversations phase — see :mod:`.conversations`.
 """
+
+from typing import Any
 
 from rich.progress import Progress
 
@@ -19,7 +22,7 @@ from ogx.log import get_logger
 from ogx_api.internal.sqlstore import ColumnType
 
 from .reader import _fields, _handle_row_error, _ReaderFor, _RunOptions, _SourceReader, _Stats
-from .target import PraxisWriter, TenantDeriver, transform_item
+from .target import ItemPositionAllocator, PraxisWriter, TenantDeriver, transform_item
 
 # Not config-driven (unlike the conversations table): conversation_items always
 # lives on the conversations backend under this physical name.
@@ -36,6 +39,32 @@ _ITEMS_COLUMNS: dict[str, ColumnType] = {
 logger = get_logger(name=__name__, category="cli")
 
 
+async def _write_rows(
+    writer: PraxisWriter | None,
+    stats: _Stats,
+    opts: _RunOptions,
+    source: str,
+    rows: list[tuple[Any, ...]],
+) -> None:
+    if writer is None:
+        return
+    for start in range(0, len(rows), opts.batch_size):
+        stats.submitted[source] += await writer.write_batch("items", rows[start : start + opts.batch_size])
+
+
+async def _write_retained_items(
+    writer: PraxisWriter | None,
+    stats: _Stats,
+    opts: _RunOptions,
+    position_allocator: ItemPositionAllocator,
+) -> None:
+    position_allocator.finalize()
+    if writer is None:
+        return
+    rows = [item.as_row() for item in position_allocator.allocate_retained("items_legacy")]
+    await _write_rows(writer, stats, opts, "items_legacy", rows)
+
+
 async def _migrate_items(
     reader: _SourceReader,
     writer: PraxisWriter | None,
@@ -43,22 +72,43 @@ async def _migrate_items(
     stats: _Stats,
     progress: Progress,
     opts: _RunOptions,
+    position_allocator: ItemPositionAllocator,
 ) -> None:
-    task = progress.add_task("items", total=await reader.count(_CONVERSATION_ITEMS_TABLE), **_fields(stats, "items"))
-    async for batch in reader.page(_CONVERSATION_ITEMS_TABLE, "id", opts.batch_size):
-        out_rows = []
-        for row in batch:
-            stats.read["items"] += 1
-            try:
-                praxis_item = transform_item(row, tenant)
-            except Exception as exc:
-                _handle_row_error("items", str(row.get("id")), exc, stats, opts.skip_errors)
-                continue
-            stats.transformed["items"] += 1
-            out_rows.append(praxis_item.as_row())
-        if writer is not None and out_rows:
-            stats.submitted["items"] += await writer.write_batch("items", out_rows)
-        progress.update(task, advance=len(batch), **_fields(stats, "items"))
+    """Plan positions in one pass, then re-read and write bounded batches.
+
+    Only compact position metadata is retained for table-backed items. Legacy
+    inline items cannot be cheaply re-read here, so the conversations phase
+    retains those comparatively rare rows in the shared allocator.
+    """
+    async with reader.snapshot() as snapshot:
+        task = progress.add_task(
+            "items", total=await snapshot.count(_CONVERSATION_ITEMS_TABLE), **_fields(stats, "items")
+        )
+        skipped_item_ids: set[str] = set()
+        async for batch in snapshot.page(_CONVERSATION_ITEMS_TABLE, "id", opts.batch_size):
+            for row in batch:
+                stats.read["items"] += 1
+                try:
+                    praxis_item = transform_item(row, tenant)
+                except Exception as exc:
+                    item_id = str(row.get("id"))
+                    _handle_row_error("items", item_id, exc, stats, opts.skip_errors)
+                    skipped_item_ids.add(item_id)
+                    continue
+                stats.transformed["items"] += 1
+                position_allocator.observe("items", praxis_item)
+            progress.update(task, advance=len(batch), **_fields(stats, "items"))
+
+        await _write_retained_items(writer, stats, opts, position_allocator)
+        if writer is not None:
+            async for batch in snapshot.page(_CONVERSATION_ITEMS_TABLE, "id", opts.batch_size):
+                out_rows = [
+                    position_allocator.allocate("items", transform_item(row, tenant)).as_row()
+                    for row in batch
+                    if str(row.get("id")) not in skipped_item_ids
+                ]
+                await _write_rows(writer, stats, opts, "items", out_rows)
+    progress.update(task, **_fields(stats, "items"))
 
 
 async def _run_items_phase(
@@ -69,9 +119,11 @@ async def _run_items_phase(
     stats: _Stats,
     progress: Progress,
     opts: _RunOptions,
+    position_allocator: ItemPositionAllocator,
 ) -> None:
     reader = await reader_for(conversations_ref.backend, _CONVERSATION_ITEMS_TABLE)
     if not await reader.prepare(_CONVERSATION_ITEMS_TABLE, _ITEMS_COLUMNS, "id"):
         logger.warning("Source conversation_items table absent; skipping items phase")
+        await _write_retained_items(writer, stats, opts, position_allocator)
         return
-    await _migrate_items(reader, writer, tenant, stats, progress, opts)
+    await _migrate_items(reader, writer, tenant, stats, progress, opts, position_allocator)
