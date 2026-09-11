@@ -255,6 +255,9 @@ jobs:
             # Explicit override from workflow_dispatch
             echo "ref=${{ inputs.client_ref }}" >> $GITHUB_OUTPUT
             echo "Using explicit client_ref: ${{ inputs.client_ref }}"
+          elif [[ "$GITHUB_BASE_REF" == release-v3.3 ]] || [[ "$GITHUB_REF" == refs/heads/release-v3.3 ]]; then
+            echo "ref=release-0.4.x" >> $GITHUB_OUTPUT
+            echo "Using client release branch: release-0.4.x"
           elif [[ "$GITHUB_BASE_REF" == release-* ]]; then
             # Pull request targeting a release branch — GITHUB_REF is refs/pull/N/merge,
             # so use the PR base branch name to pick the matching client release branch.
@@ -356,7 +359,7 @@ jobs:
           VERSION="${{ needs.compute-version.outputs.version }}"
           # Convert PEP 440 dev version to valid semver for npm
           # e.g. 0.4.5.dev20260202 -> 0.4.5-dev.20260202
-          NPM_VERSION=$(echo "$VERSION" | sed 's/\.dev/-dev./')
+          NPM_VERSION=$(echo "$VERSION" | sed 's/\.dev/-dev./' | sed -E 's/^([0-9]+\.[0-9]+\.[0-9]+)\.([0-9]+)/\1-\2/')
           echo "Setting version to $NPM_VERSION (from $VERSION)"
           npm version "$NPM_VERSION" --no-git-tag-version
           npm install
