@@ -1,0 +1,118 @@
+{
+  "test_id": "tests/integration/inference/test_tools_with_schemas.py::TestChatCompletionWithTools::test_tool_with_complex_schema[txt=fireworks/accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b]",
+  "request": {
+    "method": "POST",
+    "url": "https://api.fireworks.ai/inference/v1/v1/chat/completions",
+    "headers": {},
+    "body": {
+      "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Book a flight from SFO to JFK for John Doe"
+        }
+      ],
+      "tools": [
+        {
+          "type": "function",
+          "function": {
+            "name": "book_flight",
+            "description": "Book a flight",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "flight": {
+                  "$ref": "#/$defs/FlightInfo"
+                },
+                "passenger": {
+                  "$ref": "#/$defs/Passenger"
+                }
+              },
+              "required": [
+                "flight",
+                "passenger"
+              ],
+              "$defs": {
+                "FlightInfo": {
+                  "type": "object",
+                  "properties": {
+                    "from": {
+                      "type": "string"
+                    },
+                    "to": {
+                      "type": "string"
+                    },
+                    "date": {
+                      "type": "string",
+                      "format": "date"
+                    }
+                  }
+                },
+                "Passenger": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "age": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "endpoint": "/v1/chat/completions",
+    "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+    "provider_metadata": {
+      "openai_sdk_version": "2.43.0"
+    }
+  },
+  "response": {
+    "body": {
+      "__type__": "openai.types.chat.chat_completion.ChatCompletion",
+      "__data__": {
+        "id": "rec-c951ded421dc",
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "content": "I\u2019m happy to book that flight for John\u202fDoe, but I need a couple more details to complete the reservation:\n\n1. **Travel date** \u2013 Which date would you like to fly from SFO to JFK? (Please provide the date in YYYY\u2011MM\u2011DD format, e.g., 2025\u201109\u201115.)\n2. **Passenger age** \u2013 How old is John\u202fDoe? (The system records the age for the booking.)\n\nOnce I have those, I\u2019ll place the flight reservation right away.",
+              "refusal": null,
+              "role": "assistant",
+              "annotations": null,
+              "audio": null,
+              "function_call": null,
+              "tool_calls": null,
+              "reasoning_content": "The user wants to book a flight from SFO to JFK for John Doe. We need to call book_flight with flight info (from, to, date) and passenger info (name, age). We have from SFO, to JFK. But we need date. Not provided. Might need to ask. But perhaps we can assume a date? The prompt didn't give date. According to tool spec, flight requires from, to, date (date format). passenger requires name, age. We have name John Doe, age unknown. Probably need to ask for date and age. But maybe we can set default? Not sure. Usually we should ask for missing info. The user just said \"Book a flight from SFO to JFK for John Doe\". No date, no age. We could ask: \"What date do you want to fly and John Doe's age?\" However the instruction: \"When users ask questions, you MUST use the available tools.\" But we cannot call book_flight without required fields. Possibly we can assume date as today? But date must be valid format. Could set date as current date maybe? But better to ask.\n\nThus respond asking for date and age.",
+              "tools": null
+            }
+          }
+        ],
+        "created": 0,
+        "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+        "object": "chat.completion",
+        "moderation": null,
+        "service_tier": null,
+        "system_fingerprint": null,
+        "usage": {
+          "completion_tokens": 363,
+          "prompt_tokens": 403,
+          "total_tokens": 766,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": {
+            "audio_tokens": null,
+            "cached_tokens": 0
+          }
+        }
+      }
+    },
+    "is_streaming": false
+  },
+  "id_normalization_mapping": {}
+}

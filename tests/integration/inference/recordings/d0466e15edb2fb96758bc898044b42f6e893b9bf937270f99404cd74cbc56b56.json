@@ -1,0 +1,67 @@
+{
+  "test_id": "tests/integration/inference/test_openai_completion.py::test_inference_store[openai_client-txt=fireworks/accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b-False]",
+  "request": {
+    "method": "POST",
+    "url": "https://api.fireworks.ai/inference/v1/v1/chat/completions",
+    "headers": {},
+    "body": {
+      "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Hello, world!"
+        }
+      ],
+      "stream": false
+    },
+    "endpoint": "/v1/chat/completions",
+    "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+    "provider_metadata": {
+      "openai_sdk_version": "2.43.0"
+    }
+  },
+  "response": {
+    "body": {
+      "__type__": "openai.types.chat.chat_completion.ChatCompletion",
+      "__data__": {
+        "id": "rec-d0466e15edb2",
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "content": "Hello! How can I help you today? \ud83d\ude0a",
+              "refusal": null,
+              "role": "assistant",
+              "annotations": null,
+              "audio": null,
+              "function_call": null,
+              "tool_calls": null,
+              "reasoning_content": "Here's a thinking process:\n\n1.  **Analyze User Input**: The user said \"Hello, world!\"\n2.  **Identify Intent**: This is a standard greeting/test phrase, common in programming and AI interactions.\n3.  **Determine Response**: I should respond friendly and appropriately, acknowledging the greeting. I can keep it simple and friendly.\n4.  **Formulate Output**: \"Hello! How can I help you today?\" or similar. I'll make it warm and open-ended.\n5.  **Check Constraints**: No specific constraints mentioned. Just a greeting.\n6.  **Generate Response**: Hello! How can I help you today?\u2705",
+              "tools": null
+            }
+          }
+        ],
+        "created": 0,
+        "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+        "object": "chat.completion",
+        "moderation": null,
+        "service_tier": null,
+        "system_fingerprint": null,
+        "usage": {
+          "completion_tokens": 154,
+          "prompt_tokens": 20,
+          "total_tokens": 174,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": {
+            "audio_tokens": null,
+            "cached_tokens": 19
+          }
+        }
+      }
+    },
+    "is_streaming": false
+  },
+  "id_normalization_mapping": {}
+}

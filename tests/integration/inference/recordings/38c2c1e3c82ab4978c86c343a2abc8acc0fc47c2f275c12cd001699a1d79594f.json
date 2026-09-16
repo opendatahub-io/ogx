@@ -1,0 +1,71 @@
+{
+  "test_id": "tests/integration/inference/test_openai_completion.py::test_openai_chat_completion_with_tool_choice_none[txt=fireworks/accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b-inference:chat_completion:tool_calling]",
+  "request": {
+    "method": "POST",
+    "url": "https://api.fireworks.ai/inference/v1/v1/chat/completions",
+    "headers": {},
+    "body": {
+      "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+      "messages": [
+        {
+          "role": "system",
+          "content": "Pretend you are a weather assistant."
+        },
+        {
+          "role": "user",
+          "content": "What's the weather like in San Francisco, CA?"
+        }
+      ],
+      "stream": false
+    },
+    "endpoint": "/v1/chat/completions",
+    "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+    "provider_metadata": {
+      "openai_sdk_version": "2.43.0"
+    }
+  },
+  "response": {
+    "body": {
+      "__type__": "openai.types.chat.chat_completion.ChatCompletion",
+      "__data__": {
+        "id": "rec-38c2c1e3c82a",
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "content": "I'm your weather assistant! I don't have access to live, real-time weather data, so I can't give you the current conditions in San Francisco at this moment. \n\nFor the most accurate and up-to-date forecast, I'd recommend checking a trusted weather service like Weather.com, AccuWeather, the National Weather Service, or your phone's built-in weather app. \n\nGenerally speaking, San Francisco is known for its mild, coastal climate with significant microclimates across the city: cooler and often foggy near the coast, sunnier and warmer in the interior neighborhoods, and a wetter, cooler pattern in the winter months. \n\nLet me know if you'd like help understanding typical seasonal patterns, packing tips for the city's famous layering, or anything else weather-related!",
+              "refusal": null,
+              "role": "assistant",
+              "annotations": null,
+              "audio": null,
+              "function_call": null,
+              "tool_calls": null,
+              "reasoning_content": "Here's a thinking process:\n\n1.  **Analyze User Input:** The user is asking \"What's the weather like in San Francisco, CA?\"\n2.  **Identify Role:** I'm supposed to pretend to be a weather assistant.\n3.  **Identify Core Need:** I need to provide current weather information for San Francisco, CA.\n4.  **Check Capabilities:** I don't have real-time data access or live weather API integration. I need to acknowledge this limitation clearly.\n5.  **Formulate Response Strategy:**\n   - Acknowledge the question\n   - State my limitation (no real-time weather access)\n   - Suggest how the user can get current weather (websites, apps, etc.)\n   - Optionally provide typical/average weather for San Francisco if relevant, but keep it clear it's not current\n   - Maintain the \"weather assistant\" persona\n6.  **Draft Response (mental):**\n   I'm your weather assistant! I don't have access to live, real-time weather data, so I can't give you the current conditions in San Francisco right now. For the most up-to-date forecast, I'd recommend checking a reliable weather service like Weather.com, AccuWeather, or your phone's weather app. Generally, San Francisco is known for its mild, foggy summers and cool, wet winters\u2014often with microclimates varying neighborhood to neighborhood. Let me know if you'd like help understanding typical patterns or planning around weather!\n7.  **Refine:** Check against constraints: persona? yes. addresses the question? yes. honest about limitations? yes. provides helpful alternatives? yes. Looks good.\n8.  **Output:** Produce the refined response.\u27f9",
+              "tools": null
+            }
+          }
+        ],
+        "created": 0,
+        "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+        "object": "chat.completion",
+        "moderation": null,
+        "service_tier": null,
+        "system_fingerprint": null,
+        "usage": {
+          "completion_tokens": 525,
+          "prompt_tokens": 36,
+          "total_tokens": 561,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": {
+            "audio_tokens": null,
+            "cached_tokens": 0
+          }
+        }
+      }
+    },
+    "is_streaming": false
+  },
+  "id_normalization_mapping": {}
+}

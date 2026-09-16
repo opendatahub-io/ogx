@@ -1,0 +1,67 @@
+{
+  "test_id": "tests/integration/inference/test_openai_completion.py::test_openai_chat_completion_non_streaming[client_with_models-txt=fireworks/accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b-inference:chat_completion:non_streaming_02]",
+  "request": {
+    "method": "POST",
+    "url": "https://api.fireworks.ai/inference/v1/v1/chat/completions",
+    "headers": {},
+    "body": {
+      "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Which planet has rings around it with a name starting with letter S?"
+        }
+      ],
+      "stream": false
+    },
+    "endpoint": "/v1/chat/completions",
+    "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+    "provider_metadata": {
+      "openai_sdk_version": "2.43.0"
+    }
+  },
+  "response": {
+    "body": {
+      "__type__": "openai.types.chat.chat_completion.ChatCompletion",
+      "__data__": {
+        "id": "rec-30c7ef587ea0",
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "content": "Saturn is the planet in our solar system whose name starts with the letter \"S\" and is famous for its prominent ring system.",
+              "refusal": null,
+              "role": "assistant",
+              "annotations": null,
+              "audio": null,
+              "function_call": null,
+              "tool_calls": null,
+              "reasoning_content": "Here's a thinking process:\n\n1.  Identify the core question: Which planet has rings around it with a name starting with letter S?\n2.  Recall planets with rings: Saturn is the most famous, but also Jupiter, Uranus, Neptune have ring systems.\n3.  Check names starting with 'S': Saturn starts with S.\n4.  Verify: Saturn's rings are well-known. Are there any other planets with names starting with S? No, the planets in our solar system are Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune. Only Saturn starts with S among the major planets.\n5.  Confirm rings: Yes, Saturn has prominent rings.\n6.  Answer succinctly: Saturn.\n7.  Double-check: Could there be any exoplanet or dwarf planet? The question likely refers to the solar system's planets. Saturn is the clear answer.\n8.  Format: Just state the planet name. Provide brief certainty if needed. I'll just answer \"Saturn\".",
+              "tools": null
+            }
+          }
+        ],
+        "created": 0,
+        "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+        "object": "chat.completion",
+        "moderation": null,
+        "service_tier": null,
+        "system_fingerprint": null,
+        "usage": {
+          "completion_tokens": 240,
+          "prompt_tokens": 30,
+          "total_tokens": 270,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": {
+            "audio_tokens": null,
+            "cached_tokens": 29
+          }
+        }
+      }
+    },
+    "is_streaming": false
+  },
+  "id_normalization_mapping": {}
+}

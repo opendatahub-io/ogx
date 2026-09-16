@@ -1,0 +1,100 @@
+{
+  "test_id": "tests/integration/inference/test_openai_completion.py::test_openai_chat_completion_structured_output[txt=fireworks/accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b-inference:chat_completion:structured_output]",
+  "request": {
+    "method": "POST",
+    "url": "https://api.fireworks.ai/inference/v1/v1/chat/completions",
+    "headers": {},
+    "body": {
+      "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a helpful assistant. Michael Jordan was born in 1963. His first name is \"Michael\", He played basketball for the Chicago Bulls for 15 seasons and was drafted in 1984"
+        },
+        {
+          "role": "user",
+          "content": "Please give me information about Michael Jordan."
+        }
+      ],
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "AnswerFormat",
+          "schema": {
+            "properties": {
+              "first_name": {
+                "title": "First Name",
+                "type": "string"
+              },
+              "last_name": {
+                "title": "Last Name",
+                "type": "string"
+              },
+              "year_of_birth": {
+                "title": "Year Of Birth",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "first_name",
+              "last_name",
+              "year_of_birth"
+            ],
+            "title": "AnswerFormat",
+            "type": "object"
+          }
+        }
+      },
+      "stream": false
+    },
+    "endpoint": "/v1/chat/completions",
+    "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+    "provider_metadata": {
+      "openai_sdk_version": "2.43.0"
+    }
+  },
+  "response": {
+    "body": {
+      "__type__": "openai.types.chat.chat_completion.ChatCompletion",
+      "__data__": {
+        "id": "rec-c15f13ed2017",
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "content": "{ \"first_name\": \"Michael\", \"last_name\": \"Jordan\", \"year_of_birth\": 1963 }",
+              "refusal": null,
+              "role": "assistant",
+              "annotations": null,
+              "audio": null,
+              "function_call": null,
+              "tool_calls": null,
+              "reasoning_content": "Here's a thinking process:\n\n1.  **Analyze User Input:**\n   - User mentions: Michael Jordan was born in 1963, first name is \"Michael\", played basketball for Chicago Bulls for 15 seasons, drafted in 1984.\n   - User asks: \"Please give me information about Michael Jordan.\"\n\n2.  **Identify Core Request:**\n   - The user wants information about Michael Jordan.\n   - The user already provided some basic facts, but wants more information (or just a summary/confirmation/detailed info).\n   - I should provide a comprehensive but concise overview of Michael Jordan's life and career, covering the points they mentioned and adding key relevant details.\n\n3.  **Key Information to Include:**\n   - Birth: February 17, 1963, Brooklyn, New York (raised in Wilmington, North Carolina)\n   - College: University of North Carolina at Chapel Hill (1981-1984), famous game-winner in 1982 NCAA championship\n   - NBA: Drafted 3rd overall by Chicago Bulls in 1984\n   - Career: 15 seasons with Chicago Bulls (1984-1998), plus Washington Wizards (2001-2003)\n   - Achievements: 6x NBA champion, 6x Finals MVP, 5x NBA MVP, 10x scoring champion, 14x All-Star, etc.\n   - Impact: Global icon, \"Air Jordan\", brand success, cultural impact\n   - Retirement/Comebacks: 1993, 1995, 2001, 2003\n   - Legacy: Considered the greatest basketball player of all time (GOAT)\n\n4.  **Structure Response:**\n   - Acknowledge the facts they provided\n   - Expand on each area: early life, college, NBA career, achievements, impact, later career, legacy\n   - Keep it organized, factual, and engaging\n   - No need to overcomplicate; just solid, well-sourced-style info\n\n   Check accuracy:\n   - Born 1963: Correct, Feb 17, 1963\n   - First name Michael: Correct\n   - Chicago Bulls 15 seasons: Correct (though technically he played 13 full seasons with Bulls, 2 with Wizards, but he's famously associated with 15 NBA seasons total, 13 with Bulls. I'll clarify)\n   - Drafted 1984: Correct, 3rd overall by Chicago Bulls\n   - I'll make sure numbers are accurate: 6 championships, 6 Finals MVPs, 5 regular season MVPs, etc.\n   - College: UNC, 1982 national championship shot by Michael Jordan\n   - I'll structure it clearly.\n\n   Potential pitfalls: \n   - Saying he played exactly 15 seasons for Bulls only (he played 13 there, 2 with Wizards, total 15 NBA seasons). I'll note that.\n   - Keep it concise but comprehensive.\n\n   Draft response in mind:\n   - Start with the basics they confirmed\n   - Add college, draft details\n   - Highlight NBA career, achievements, impact\n   - Mention his two stints with Bulls and Wizards, total 15 seasons\n   - End with legacy/GOAT status\n   - Keep tone respectful and informative\n\n   All facts check out. I'll generate it.\u27e8\u27e9",
+              "tools": null
+            }
+          }
+        ],
+        "created": 0,
+        "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+        "object": "chat.completion",
+        "moderation": null,
+        "service_tier": null,
+        "system_fingerprint": null,
+        "usage": {
+          "completion_tokens": 791,
+          "prompt_tokens": 69,
+          "total_tokens": 860,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": {
+            "audio_tokens": null,
+            "cached_tokens": 0
+          }
+        }
+      }
+    },
+    "is_streaming": false
+  },
+  "id_normalization_mapping": {}
+}
