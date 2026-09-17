@@ -26,10 +26,10 @@
         "id": "rec-143389c0ce3b",
         "choices": [
           {
-            "finish_reason": "length",
+            "finish_reason": "stop",
             "index": 0,
             "logprobs": null,
-            "text": ".], [2, 2], [1, 5], [1"
+            "text": ". -> Michael Jordan was born in the year of "
           }
         ],
         "created": 0,

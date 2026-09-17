@@ -1051,7 +1051,7 @@
                 "refusal": null,
                 "role": null,
                 "tool_calls": null,
-                "reasoning_content": " Simple"
+                "reasoning_content": " Capital"
               },
               "finish_reason": null,
               "index": 0,
@@ -1080,7 +1080,7 @@
                 "refusal": null,
                 "role": null,
                 "tool_calls": null,
-                "reasoning_content": " factual"
+                "reasoning_content": " city"
               },
               "finish_reason": null,
               "index": 0,
@@ -1109,7 +1109,7 @@
                 "refusal": null,
                 "role": null,
                 "tool_calls": null,
-                "reasoning_content": " question"
+                "reasoning_content": " of"
               },
               "finish_reason": null,
               "index": 0,
@@ -1138,123 +1138,7 @@
                 "refusal": null,
                 "role": null,
                 "tool_calls": null,
-                "reasoning_content": " about"
-              },
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "raw_output": null
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "chat.completion.chunk",
-          "moderation": null,
-          "service_tier": null,
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
-        "__data__": {
-          "id": "rec-134cdcc0a52f",
-          "choices": [
-            {
-              "delta": {
-                "content": null,
-                "function_call": null,
-                "refusal": null,
-                "role": null,
-                "tool_calls": null,
-                "reasoning_content": " geography"
-              },
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "raw_output": null
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "chat.completion.chunk",
-          "moderation": null,
-          "service_tier": null,
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
-        "__data__": {
-          "id": "rec-134cdcc0a52f",
-          "choices": [
-            {
-              "delta": {
-                "content": null,
-                "function_call": null,
-                "refusal": null,
-                "role": null,
-                "tool_calls": null,
-                "reasoning_content": "/p"
-              },
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "raw_output": null
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "chat.completion.chunk",
-          "moderation": null,
-          "service_tier": null,
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
-        "__data__": {
-          "id": "rec-134cdcc0a52f",
-          "choices": [
-            {
-              "delta": {
-                "content": null,
-                "function_call": null,
-                "refusal": null,
-                "role": null,
-                "tool_calls": null,
-                "reasoning_content": "olit"
-              },
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "raw_output": null
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "chat.completion.chunk",
-          "moderation": null,
-          "service_tier": null,
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
-        "__data__": {
-          "id": "rec-134cdcc0a52f",
-          "choices": [
-            {
-              "delta": {
-                "content": null,
-                "function_call": null,
-                "refusal": null,
-                "role": null,
-                "tool_calls": null,
-                "reasoning_content": "ics"
+                "reasoning_content": " France"
               },
               "finish_reason": null,
               "index": 0,
@@ -1399,7 +1283,7 @@
                 "refusal": null,
                 "role": null,
                 "tool_calls": null,
-                "reasoning_content": "Know"
+                "reasoning_content": "Retrie"
               },
               "finish_reason": null,
               "index": 0,
@@ -1428,7 +1312,7 @@
                 "refusal": null,
                 "role": null,
                 "tool_calls": null,
-                "reasoning_content": "ledge"
+                "reasoning_content": "ve"
               },
               "finish_reason": null,
               "index": 0,
@@ -1457,36 +1341,7 @@
                 "refusal": null,
                 "role": null,
                 "tool_calls": null,
-                "reasoning_content": " Retrie"
-              },
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "raw_output": null
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "chat.completion.chunk",
-          "moderation": null,
-          "service_tier": null,
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
-        "__data__": {
-          "id": "rec-134cdcc0a52f",
-          "choices": [
-            {
-              "delta": {
-                "content": null,
-                "function_call": null,
-                "refusal": null,
-                "role": null,
-                "tool_calls": null,
-                "reasoning_content": "val"
+                "reasoning_content": " Knowledge"
               },
               "finish_reason": null,
               "index": 0,
@@ -1544,64 +1399,6 @@
                 "refusal": null,
                 "role": null,
                 "tool_calls": null,
-                "reasoning_content": " Capital"
-              },
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "raw_output": null
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "chat.completion.chunk",
-          "moderation": null,
-          "service_tier": null,
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
-        "__data__": {
-          "id": "rec-134cdcc0a52f",
-          "choices": [
-            {
-              "delta": {
-                "content": null,
-                "function_call": null,
-                "refusal": null,
-                "role": null,
-                "tool_calls": null,
-                "reasoning_content": " of"
-              },
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "raw_output": null
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "chat.completion.chunk",
-          "moderation": null,
-          "service_tier": null,
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
-        "__data__": {
-          "id": "rec-134cdcc0a52f",
-          "choices": [
-            {
-              "delta": {
-                "content": null,
-                "function_call": null,
-                "refusal": null,
-                "role": null,
-                "tool_calls": null,
                 "reasoning_content": " France"
               },
               "finish_reason": null,
@@ -1631,7 +1428,65 @@
                 "refusal": null,
                 "role": null,
                 "tool_calls": null,
-                "reasoning_content": " ="
+                "reasoning_content": "'s"
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "raw_output": null
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-134cdcc0a52f",
+          "choices": [
+            {
+              "delta": {
+                "content": null,
+                "function_call": null,
+                "refusal": null,
+                "role": null,
+                "tool_calls": null,
+                "reasoning_content": " capital"
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "raw_output": null
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-134cdcc0a52f",
+          "choices": [
+            {
+              "delta": {
+                "content": null,
+                "function_call": null,
+                "refusal": null,
+                "role": null,
+                "tool_calls": null,
+                "reasoning_content": " is"
               },
               "finish_reason": null,
               "index": 0,
@@ -1950,64 +1805,6 @@
                 "refusal": null,
                 "role": null,
                 "tool_calls": null,
-                "reasoning_content": ","
-              },
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "raw_output": null
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "chat.completion.chunk",
-          "moderation": null,
-          "service_tier": null,
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
-        "__data__": {
-          "id": "rec-134cdcc0a52f",
-          "choices": [
-            {
-              "delta": {
-                "content": null,
-                "function_call": null,
-                "refusal": null,
-                "role": null,
-                "tool_calls": null,
-                "reasoning_content": " concise"
-              },
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "raw_output": null
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "chat.completion.chunk",
-          "moderation": null,
-          "service_tier": null,
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
-        "__data__": {
-          "id": "rec-134cdcc0a52f",
-          "choices": [
-            {
-              "delta": {
-                "content": null,
-                "function_call": null,
-                "refusal": null,
-                "role": null,
-                "tool_calls": null,
                 "reasoning_content": " answer"
               },
               "finish_reason": null,
@@ -2037,7 +1834,7 @@
                 "refusal": null,
                 "role": null,
                 "tool_calls": null,
-                "reasoning_content": "."
+                "reasoning_content": ","
               },
               "finish_reason": null,
               "index": 0,
@@ -2066,65 +1863,7 @@
                 "refusal": null,
                 "role": null,
                 "tool_calls": null,
-                "reasoning_content": " Option"
-              },
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "raw_output": null
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "chat.completion.chunk",
-          "moderation": null,
-          "service_tier": null,
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
-        "__data__": {
-          "id": "rec-134cdcc0a52f",
-          "choices": [
-            {
-              "delta": {
-                "content": null,
-                "function_call": null,
-                "refusal": null,
-                "role": null,
-                "tool_calls": null,
-                "reasoning_content": "ally"
-              },
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "raw_output": null
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "chat.completion.chunk",
-          "moderation": null,
-          "service_tier": null,
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
-        "__data__": {
-          "id": "rec-134cdcc0a52f",
-          "choices": [
-            {
-              "delta": {
-                "content": null,
-                "function_call": null,
-                "refusal": null,
-                "role": null,
-                "tool_calls": null,
-                "reasoning_content": " add"
+                "reasoning_content": " maybe"
               },
               "finish_reason": null,
               "index": 0,
@@ -2385,7 +2124,7 @@
                 "refusal": null,
                 "role": null,
                 "tool_calls": null,
-                "reasoning_content": " direct"
+                "reasoning_content": " simple"
               },
               "finish_reason": null,
               "index": 0,
@@ -2415,6 +2154,238 @@
                 "role": null,
                 "tool_calls": null,
                 "reasoning_content": "."
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "raw_output": null
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-134cdcc0a52f",
+          "choices": [
+            {
+              "delta": {
+                "content": null,
+                "function_call": null,
+                "refusal": null,
+                "role": null,
+                "tool_calls": null,
+                "reasoning_content": " \""
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "raw_output": null
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-134cdcc0a52f",
+          "choices": [
+            {
+              "delta": {
+                "content": null,
+                "function_call": null,
+                "refusal": null,
+                "role": null,
+                "tool_calls": null,
+                "reasoning_content": "The"
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "raw_output": null
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-134cdcc0a52f",
+          "choices": [
+            {
+              "delta": {
+                "content": null,
+                "function_call": null,
+                "refusal": null,
+                "role": null,
+                "tool_calls": null,
+                "reasoning_content": " capital"
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "raw_output": null
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-134cdcc0a52f",
+          "choices": [
+            {
+              "delta": {
+                "content": null,
+                "function_call": null,
+                "refusal": null,
+                "role": null,
+                "tool_calls": null,
+                "reasoning_content": " of"
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "raw_output": null
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-134cdcc0a52f",
+          "choices": [
+            {
+              "delta": {
+                "content": null,
+                "function_call": null,
+                "refusal": null,
+                "role": null,
+                "tool_calls": null,
+                "reasoning_content": " France"
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "raw_output": null
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-134cdcc0a52f",
+          "choices": [
+            {
+              "delta": {
+                "content": null,
+                "function_call": null,
+                "refusal": null,
+                "role": null,
+                "tool_calls": null,
+                "reasoning_content": " is"
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "raw_output": null
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-134cdcc0a52f",
+          "choices": [
+            {
+              "delta": {
+                "content": null,
+                "function_call": null,
+                "refusal": null,
+                "role": null,
+                "tool_calls": null,
+                "reasoning_content": " Paris"
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "raw_output": null
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-134cdcc0a52f",
+          "choices": [
+            {
+              "delta": {
+                "content": null,
+                "function_call": null,
+                "refusal": null,
+                "role": null,
+                "tool_calls": null,
+                "reasoning_content": ".\""
               },
               "finish_reason": null,
               "index": 0,
@@ -2646,6 +2617,64 @@
                 "refusal": null,
                 "role": null,
                 "tool_calls": null,
+                "reasoning_content": " Yes"
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "raw_output": null
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-134cdcc0a52f",
+          "choices": [
+            {
+              "delta": {
+                "content": null,
+                "function_call": null,
+                "refusal": null,
+                "role": null,
+                "tool_calls": null,
+                "reasoning_content": ","
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "raw_output": null
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-134cdcc0a52f",
+          "choices": [
+            {
+              "delta": {
+                "content": null,
+                "function_call": null,
+                "refusal": null,
+                "role": null,
+                "tool_calls": null,
                 "reasoning_content": " Paris"
               },
               "finish_reason": null,
@@ -2676,35 +2705,6 @@
                 "role": null,
                 "tool_calls": null,
                 "reasoning_content": " is"
-              },
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "raw_output": null
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "chat.completion.chunk",
-          "moderation": null,
-          "service_tier": null,
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
-        "__data__": {
-          "id": "rec-134cdcc0a52f",
-          "choices": [
-            {
-              "delta": {
-                "content": null,
-                "function_call": null,
-                "refusal": null,
-                "role": null,
-                "tool_calls": null,
-                "reasoning_content": " indeed"
               },
               "finish_reason": null,
               "index": 0,
@@ -3284,7 +3284,36 @@
                 "refusal": null,
                 "role": null,
                 "tool_calls": null,
-                "reasoning_content": " or"
+                "reasoning_content": " ("
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "raw_output": null
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-134cdcc0a52f",
+          "choices": [
+            {
+              "delta": {
+                "content": null,
+                "function_call": null,
+                "refusal": null,
+                "role": null,
+                "tool_calls": null,
+                "reasoning_content": "or"
               },
               "finish_reason": null,
               "index": 0,
@@ -3342,7 +3371,7 @@
                 "refusal": null,
                 "role": null,
                 "tool_calls": null,
-                "reasoning_content": "."
+                "reasoning_content": ")"
               },
               "finish_reason": null,
               "index": 0,
@@ -3624,13 +3653,13 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 133,
+            "completion_tokens": 134,
             "prompt_tokens": 23,
-            "total_tokens": 156,
+            "total_tokens": 157,
             "completion_tokens_details": null,
             "prompt_tokens_details": {
               "audio_tokens": null,
-              "cached_tokens": 0
+              "cached_tokens": 22
             }
           }
         }

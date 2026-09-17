@@ -31,14 +31,14 @@
             "index": 0,
             "logprobs": null,
             "message": {
-              "content": "Humans live on Earth.",
+              "content": "Humans live on **Earth**, the third planet from the Sun. It's the only known planet in the universe that supports life as we know it.",
               "refusal": null,
               "role": "assistant",
               "annotations": null,
               "audio": null,
               "function_call": null,
               "tool_calls": null,
-              "reasoning_content": "Here's a thinking process:\n\n1.  **Analyze User Input:** \n   - User asks: \"Which planet do humans live on?\"\n   - This is a straightforward factual question.\n\n2.  **Identify Core Fact:**\n   - Humans live on Earth.\n\n3.  **Formulate Response:**\n   - Direct answer: Earth\n   - Can add brief context if needed, but keep it simple and accurate.\n   - No trick or ambiguity.\n\n4.  **Draft Response:**\n   Humans live on Earth.\n\n5.  **Self-Correction/Verification:**\n   - Check accuracy: Yes, Earth is the third planet from the Sun, the only known planet to support life, including humans.\n   - Check tone: Simple, direct, appropriate.\n   - No extra fluff needed.\n\n   Final output: \"Humans live on Earth.\" or slightly expanded but still concise. I'll just give the direct answer.\u2705",
+              "reasoning_content": "Here's a thinking process:\n\n1.  **Analyze User Input:** The user is asking \"Which planet do humans live on?\"\n2.  **Identify Core Question:** The question is about Earth, the planet humans inhabit.\n3.  **Formulate Answer:** The answer is straightforward: Earth. I should provide a concise, accurate response.\n4.  **Check for Additional Context:** The question is simple, so I'll just answer directly, maybe add a brief fact if helpful, but keep it simple.\n5.  **Generate Response:** \"Humans live on Earth.\" or \"We live on Earth, the third planet from the Sun.\" I'll keep it direct.\u2705",
               "tools": null
             }
           }
@@ -50,9 +50,9 @@
         "service_tier": null,
         "system_fingerprint": null,
         "usage": {
-          "completion_tokens": 201,
+          "completion_tokens": 176,
           "prompt_tokens": 23,
-          "total_tokens": 224,
+          "total_tokens": 199,
           "completion_tokens_details": null,
           "prompt_tokens_details": {
             "audio_tokens": null,

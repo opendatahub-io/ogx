@@ -51,7 +51,7 @@
               "function_call": null,
               "tool_calls": [
                 {
-                  "id": "chatcmpl-tool-9924afa469f7bdbe",
+                  "id": "chatcmpl-tool-99c0ce0403bfd1d4",
                   "function": {
                     "arguments": "{}",
                     "name": "no_args_tool"
@@ -61,7 +61,7 @@
                   "name": null
                 }
               ],
-              "reasoning_content": "We need to call the no_args_tool. Use the function.",
+              "reasoning_content": "We need to call the tool with no arguments. Use the function.",
               "tools": null
             }
           }

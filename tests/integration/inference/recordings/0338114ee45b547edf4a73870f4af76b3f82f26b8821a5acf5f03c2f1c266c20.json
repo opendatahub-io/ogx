@@ -31,14 +31,14 @@
             "index": 0,
             "logprobs": null,
             "message": {
-              "content": "Humans live on **Earth**, the third planet from the Sun. It's the only known planet in the universe that supports life.",
+              "content": "Humans live on **Earth**. It's the third planet from the Sun and the only known planet in the universe to support life.",
               "refusal": null,
               "role": "assistant",
               "annotations": null,
               "audio": null,
               "function_call": null,
               "tool_calls": null,
-              "reasoning_content": "Here's a thinking process:\n\n1.  **Identify the core question**: The user is asking \"Which planet do humans live on?\"\n2.  **Identify the answer**: Earth is the planet humans live on.\n3.  **Formulate the response**: Keep it simple and direct. I can state \"Earth\" or \"Earth (the third planet from the Sun)\". I should make sure it's accurate and concise.\n4.  **Check for any tricks or additional context**: The question is straightforward. No hidden complexity. Just answer directly.\n5.  **Draft response**: Humans live on Earth. It's the third planet from the Sun. I'll keep it brief.\u2705",
+              "reasoning_content": "Here's a thinking process:\n\n1.  **Analyze User Input:** The user asks, \"Which planet do humans live on?\"\n2.  **Identify Key Fact:** The answer is Earth. Humans live on Earth.\n3.  **Formulate Response:** Simple, direct, and accurate. I'll state that humans live on Earth, and optionally add a brief context if needed, but keep it concise.\n4.  **Check for Accuracy:** Yes, Earth is the third planet from the Sun and the only known planet to support human life.\n5.  **Generate Output:** \"Humans live on Earth.\" or slightly expanded but factual. I'll just answer directly.\u2705",
               "tools": null
             }
           }
@@ -50,9 +50,9 @@
         "service_tier": null,
         "system_fingerprint": null,
         "usage": {
-          "completion_tokens": 172,
+          "completion_tokens": 171,
           "prompt_tokens": 23,
-          "total_tokens": 195,
+          "total_tokens": 194,
           "completion_tokens_details": null,
           "prompt_tokens_details": {
             "audio_tokens": null,

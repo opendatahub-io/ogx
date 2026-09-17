@@ -95,9 +95,9 @@
               "function_call": null,
               "tool_calls": [
                 {
-                  "id": "chatcmpl-tool-81dfc18c9cfb7807",
+                  "id": "chatcmpl-tool-a02564ee638aaaf1",
                   "function": {
-                    "arguments": "{\"x\": \"Hello, tool usage example.\"}",
+                    "arguments": "{\"x\": \"Hello, tool!\"}",
                     "name": "simple"
                   },
                   "type": "function",
@@ -105,7 +105,7 @@
                   "name": null
                 }
               ],
-              "reasoning_content": "We have user: \"Use one of the available tools\". Probably they want us to call a tool. Which one? Could be any. We need to choose one. The prompt is vague. Probably just demonstrate usage. Let's call simple with some string.",
+              "reasoning_content": "We need to use one of the available tools. The user says \"Use one of the available tools\". Probably we need to call a tool, maybe just test simple? We can choose any. Let's use simple with some string.",
               "tools": null
             }
           }
@@ -117,9 +117,9 @@
         "service_tier": null,
         "system_fingerprint": null,
         "usage": {
-          "completion_tokens": 80,
+          "completion_tokens": 73,
           "prompt_tokens": 398,
-          "total_tokens": 478,
+          "total_tokens": 471,
           "completion_tokens_details": null,
           "prompt_tokens_details": {
             "audio_tokens": null,

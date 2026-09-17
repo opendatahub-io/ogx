@@ -30,7 +30,7 @@
               "finish_reason": null,
               "index": 0,
               "logprobs": null,
-              "text": " _"
+              "text": " purple"
             }
           ],
           "created": 0,
@@ -49,7 +49,7 @@
               "finish_reason": null,
               "index": 0,
               "logprobs": null,
-              "text": "____"
+              "text": "."
             }
           ],
           "created": 0,
@@ -68,7 +68,7 @@
               "finish_reason": null,
               "index": 0,
               "logprobs": null,
-              "text": "_.\n\n"
+              "text": "  "
             }
           ],
           "created": 0,
@@ -87,7 +87,216 @@
               "finish_reason": null,
               "index": 0,
               "logprobs": null,
-              "text": "If"
+              "text": "\n"
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "text_completion",
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.completion.Completion",
+        "__data__": {
+          "id": "rec-9f4d531fc48f",
+          "choices": [
+            {
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "text": "Options"
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "text_completion",
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.completion.Completion",
+        "__data__": {
+          "id": "rec-9f4d531fc48f",
+          "choices": [
+            {
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "text": ":"
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "text_completion",
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.completion.Completion",
+        "__data__": {
+          "id": "rec-9f4d531fc48f",
+          "choices": [
+            {
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "text": "  "
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "text_completion",
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.completion.Completion",
+        "__data__": {
+          "id": "rec-9f4d531fc48f",
+          "choices": [
+            {
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "text": "\n"
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "text_completion",
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.completion.Completion",
+        "__data__": {
+          "id": "rec-9f4d531fc48f",
+          "choices": [
+            {
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "text": "A"
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "text_completion",
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.completion.Completion",
+        "__data__": {
+          "id": "rec-9f4d531fc48f",
+          "choices": [
+            {
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "text": "."
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "text_completion",
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.completion.Completion",
+        "__data__": {
+          "id": "rec-9f4d531fc48f",
+          "choices": [
+            {
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "text": " there"
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "text_completion",
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.completion.Completion",
+        "__data__": {
+          "id": "rec-9f4d531fc48f",
+          "choices": [
+            {
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "text": "  "
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "text_completion",
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.completion.Completion",
+        "__data__": {
+          "id": "rec-9f4d531fc48f",
+          "choices": [
+            {
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "text": "\n"
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "text_completion",
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.completion.Completion",
+        "__data__": {
+          "id": "rec-9f4d531fc48f",
+          "choices": [
+            {
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "text": "B"
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "text_completion",
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.completion.Completion",
+        "__data__": {
+          "id": "rec-9f4d531fc48f",
+          "choices": [
+            {
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "text": "."
             }
           ],
           "created": 0,
@@ -125,7 +334,292 @@
               "finish_reason": null,
               "index": 0,
               "logprobs": null,
-              "text": " student"
+              "text": "  "
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "text_completion",
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.completion.Completion",
+        "__data__": {
+          "id": "rec-9f4d531fc48f",
+          "choices": [
+            {
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "text": "\n"
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "text_completion",
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.completion.Completion",
+        "__data__": {
+          "id": "rec-9f4d531fc48f",
+          "choices": [
+            {
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "text": "C"
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "text_completion",
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.completion.Completion",
+        "__data__": {
+          "id": "rec-9f4d531fc48f",
+          "choices": [
+            {
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "text": "."
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "text_completion",
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.completion.Completion",
+        "__data__": {
+          "id": "rec-9f4d531fc48f",
+          "choices": [
+            {
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "text": " to"
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "text_completion",
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.completion.Completion",
+        "__data__": {
+          "id": "rec-9f4d531fc48f",
+          "choices": [
+            {
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "text": "  "
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "text_completion",
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.completion.Completion",
+        "__data__": {
+          "id": "rec-9f4d531fc48f",
+          "choices": [
+            {
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "text": "\n"
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "text_completion",
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.completion.Completion",
+        "__data__": {
+          "id": "rec-9f4d531fc48f",
+          "choices": [
+            {
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "text": "D"
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "text_completion",
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.completion.Completion",
+        "__data__": {
+          "id": "rec-9f4d531fc48f",
+          "choices": [
+            {
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "text": "."
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "text_completion",
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.completion.Completion",
+        "__data__": {
+          "id": "rec-9f4d531fc48f",
+          "choices": [
+            {
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "text": " blue"
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "text_completion",
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.completion.Completion",
+        "__data__": {
+          "id": "rec-9f4d531fc48f",
+          "choices": [
+            {
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "text": "\n"
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "text_completion",
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.completion.Completion",
+        "__data__": {
+          "id": "rec-9f4d531fc48f",
+          "choices": [
+            {
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "text": "Answer"
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "text_completion",
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.completion.Completion",
+        "__data__": {
+          "id": "rec-9f4d531fc48f",
+          "choices": [
+            {
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "text": ":"
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "text_completion",
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.completion.Completion",
+        "__data__": {
+          "id": "rec-9f4d531fc48f",
+          "choices": [
+            {
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "text": " D"
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "text_completion",
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.completion.Completion",
+        "__data__": {
+          "id": "rec-9f4d531fc48f",
+          "choices": [
+            {
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "text": "\n"
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "text_completion",
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.completion.Completion",
+        "__data__": {
+          "id": "rec-9f4d531fc48f",
+          "choices": [
+            {
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "text": "To"
             }
           ],
           "created": 0,
@@ -163,7 +657,7 @@
               "finish_reason": null,
               "index": 0,
               "logprobs": null,
-              "text": " does"
+              "text": " this"
             }
           ],
           "created": 0,
@@ -182,64 +676,7 @@
               "finish_reason": null,
               "index": 0,
               "logprobs": null,
-              "text": " not"
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "text_completion",
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.completion.Completion",
-        "__data__": {
-          "id": "rec-9f4d531fc48f",
-          "choices": [
-            {
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "text": " contain"
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "text_completion",
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.completion.Completion",
-        "__data__": {
-          "id": "rec-9f4d531fc48f",
-          "choices": [
-            {
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "text": " one"
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "text_completion",
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.completion.Completion",
-        "__data__": {
-          "id": "rec-9f4d531fc48f",
-          "choices": [
-            {
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "text": " word"
+              "text": " question"
             }
           ],
           "created": 0,
@@ -277,7 +714,45 @@
               "finish_reason": null,
               "index": 0,
               "logprobs": null,
-              "text": " provide"
+              "text": " let"
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "text_completion",
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.completion.Completion",
+        "__data__": {
+          "id": "rec-9f4d531fc48f",
+          "choices": [
+            {
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "text": "'s"
+            }
+          ],
+          "created": 0,
+          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+          "object": "text_completion",
+          "system_fingerprint": null,
+          "usage": null
+        }
+      },
+      {
+        "__type__": "openai.types.completion.Completion",
+        "__data__": {
+          "id": "rec-9f4d531fc48f",
+          "choices": [
+            {
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null,
+              "text": " analyze"
             }
           ],
           "created": 0,
@@ -315,7 +790,7 @@
               "finish_reason": null,
               "index": 0,
               "logprobs": null,
-              "text": " answer"
+              "text": " sentence"
             }
           ],
           "created": 0,
@@ -334,7 +809,7 @@
               "finish_reason": null,
               "index": 0,
               "logprobs": null,
-              "text": " as"
+              "text": " provided"
             }
           ],
           "created": 0,
@@ -353,7 +828,7 @@
               "finish_reason": null,
               "index": 0,
               "logprobs": null,
-              "text": " well"
+              "text": ":"
             }
           ],
           "created": 0,
@@ -372,7 +847,7 @@
               "finish_reason": null,
               "index": 0,
               "logprobs": null,
-              "text": " as"
+              "text": " \""
             }
           ],
           "created": 0,
@@ -391,7 +866,7 @@
               "finish_reason": null,
               "index": 0,
               "logprobs": null,
-              "text": " the"
+              "text": "R"
             }
           ],
           "created": 0,
@@ -410,7 +885,7 @@
               "finish_reason": null,
               "index": 0,
               "logprobs": null,
-              "text": " reason"
+              "text": "oses"
             }
           ],
           "created": 0,
@@ -429,7 +904,7 @@
               "finish_reason": null,
               "index": 0,
               "logprobs": null,
-              "text": " why"
+              "text": " are"
             }
           ],
           "created": 0,
@@ -448,7 +923,7 @@
               "finish_reason": null,
               "index": 0,
               "logprobs": null,
-              "text": " the"
+              "text": " red"
             }
           ],
           "created": 0,
@@ -467,7 +942,7 @@
               "finish_reason": null,
               "index": 0,
               "logprobs": null,
-              "text": " student"
+              "text": ","
             }
           ],
           "created": 0,
@@ -486,482 +961,7 @@
               "finish_reason": null,
               "index": 0,
               "logprobs": null,
-              "text": " answer"
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "text_completion",
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.completion.Completion",
-        "__data__": {
-          "id": "rec-9f4d531fc48f",
-          "choices": [
-            {
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "text": " does"
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "text_completion",
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.completion.Completion",
-        "__data__": {
-          "id": "rec-9f4d531fc48f",
-          "choices": [
-            {
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "text": " not"
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "text_completion",
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.completion.Completion",
-        "__data__": {
-          "id": "rec-9f4d531fc48f",
-          "choices": [
-            {
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "text": " meet"
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "text_completion",
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.completion.Completion",
-        "__data__": {
-          "id": "rec-9f4d531fc48f",
-          "choices": [
-            {
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "text": " the"
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "text_completion",
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.completion.Completion",
-        "__data__": {
-          "id": "rec-9f4d531fc48f",
-          "choices": [
-            {
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "text": " requirements"
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "text_completion",
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.completion.Completion",
-        "__data__": {
-          "id": "rec-9f4d531fc48f",
-          "choices": [
-            {
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "text": ".\n\n"
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "text_completion",
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.completion.Completion",
-        "__data__": {
-          "id": "rec-9f4d531fc48f",
-          "choices": [
-            {
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "text": "Generate"
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "text_completion",
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.completion.Completion",
-        "__data__": {
-          "id": "rec-9f4d531fc48f",
-          "choices": [
-            {
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "text": " the"
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "text_completion",
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.completion.Completion",
-        "__data__": {
-          "id": "rec-9f4d531fc48f",
-          "choices": [
-            {
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "text": " response"
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "text_completion",
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.completion.Completion",
-        "__data__": {
-          "id": "rec-9f4d531fc48f",
-          "choices": [
-            {
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "text": " in"
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "text_completion",
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.completion.Completion",
-        "__data__": {
-          "id": "rec-9f4d531fc48f",
-          "choices": [
-            {
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "text": " the"
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "text_completion",
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.completion.Completion",
-        "__data__": {
-          "id": "rec-9f4d531fc48f",
-          "choices": [
-            {
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "text": " following"
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "text_completion",
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.completion.Completion",
-        "__data__": {
-          "id": "rec-9f4d531fc48f",
-          "choices": [
-            {
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "text": " format"
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "text_completion",
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.completion.Completion",
-        "__data__": {
-          "id": "rec-9f4d531fc48f",
-          "choices": [
-            {
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "text": ":\n"
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "text_completion",
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.completion.Completion",
-        "__data__": {
-          "id": "rec-9f4d531fc48f",
-          "choices": [
-            {
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "text": "[["
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "text_completion",
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.completion.Completion",
-        "__data__": {
-          "id": "rec-9f4d531fc48f",
-          "choices": [
-            {
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "text": "answer"
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "text_completion",
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.completion.Completion",
-        "__data__": {
-          "id": "rec-9f4d531fc48f",
-          "choices": [
-            {
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "text": "]:"
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "text_completion",
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.completion.Completion",
-        "__data__": {
-          "id": "rec-9f4d531fc48f",
-          "choices": [
-            {
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "text": " ["
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "text_completion",
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.completion.Completion",
-        "__data__": {
-          "id": "rec-9f4d531fc48f",
-          "choices": [
-            {
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "text": "reason"
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "text_completion",
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.completion.Completion",
-        "__data__": {
-          "id": "rec-9f4d531fc48f",
-          "choices": [
-            {
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "text": "]]"
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "text_completion",
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.completion.Completion",
-        "__data__": {
-          "id": "rec-9f4d531fc48f",
-          "choices": [
-            {
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "text": "</think>"
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "text_completion",
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.completion.Completion",
-        "__data__": {
-          "id": "rec-9f4d531fc48f",
-          "choices": [
-            {
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "text": "[["
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "text_completion",
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.completion.Completion",
-        "__data__": {
-          "id": "rec-9f4d531fc48f",
-          "choices": [
-            {
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "text": "v"
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "text_completion",
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.completion.Completion",
-        "__data__": {
-          "id": "rec-9f4d531fc48f",
-          "choices": [
-            {
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "text": "iolet"
-            }
-          ],
-          "created": 0,
-          "model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
-          "object": "text_completion",
-          "system_fingerprint": null,
-          "usage": null
-        }
-      },
-      {
-        "__type__": "openai.types.completion.Completion",
-        "__data__": {
-          "id": "rec-9f4d531fc48f",
-          "choices": [
-            {
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null,
-              "text": "]:"
+              "text": " vio"
             }
           ],
           "created": 0,

@@ -59,7 +59,7 @@
               "function_call": null,
               "tool_calls": [
                 {
-                  "id": "chatcmpl-tool-97568590892420b7",
+                  "id": "chatcmpl-tool-afaef85b967fadf1",
                   "function": {
                     "arguments": "{\"location\": \"Tokyo\"}",
                     "name": "get_weather"
@@ -69,7 +69,7 @@
                   "name": null
                 }
               ],
-              "reasoning_content": "User asks \"What's the weather in Tokyo?\" Need to get weather info via function get_weather. Provide location \"Tokyo\". Use function.",
+              "reasoning_content": "We need to use get_weather with location Tokyo.",
               "tools": null
             }
           }
@@ -81,9 +81,9 @@
         "service_tier": null,
         "system_fingerprint": null,
         "usage": {
-          "completion_tokens": 55,
+          "completion_tokens": 37,
           "prompt_tokens": 280,
-          "total_tokens": 335,
+          "total_tokens": 317,
           "completion_tokens_details": null,
           "prompt_tokens_details": {
             "audio_tokens": null,

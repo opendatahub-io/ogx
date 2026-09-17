@@ -65,7 +65,7 @@
               "function_call": null,
               "tool_calls": [
                 {
-                  "id": "chatcmpl-tool-81453e98c945cc17",
+                  "id": "chatcmpl-tool-bffe90c5f94d8ed5",
                   "function": {
                     "arguments": "{\"location\": \"San Francisco, CA\"}",
                     "name": "get_weather"
@@ -75,7 +75,7 @@
                   "name": null
                 }
               ],
-              "reasoning_content": "We need to retrieve weather for San Francisco, CA. Use get_weather with location \"San Francisco, CA\".",
+              "reasoning_content": "We need to call get_weather with location \"San Francisco, CA\".",
               "tools": null
             }
           }
@@ -87,9 +87,9 @@
         "service_tier": null,
         "system_fingerprint": null,
         "usage": {
-          "completion_tokens": 52,
+          "completion_tokens": 44,
           "prompt_tokens": 306,
-          "total_tokens": 358,
+          "total_tokens": 350,
           "completion_tokens_details": null,
           "prompt_tokens_details": {
             "audio_tokens": null,

@@ -60,14 +60,14 @@
             "index": 0,
             "logprobs": null,
             "message": {
-              "content": "I\u2019m ready to process your data, but I don\u2019t see any data included in your message. Could you please provide the numbers (or a JSON object with a `\"values\"` array) you\u2019d like me to process? Once I have that, I\u2019ll run it through the\u202f`process_data`\u202ftool for you.",
+              "content": "I\u2019m ready to process the data, but I\u2019ll need the actual data you want me to work with. Could you please provide the numbers (or any structured data) you\u2019d like processed?",
               "refusal": null,
               "role": "assistant",
               "annotations": null,
               "audio": null,
               "function_call": null,
               "tool_calls": null,
-              "reasoning_content": "The user says \"Process this data\". But there's no data attached. Perhaps they expect me to ask for data? But the instruction: \"When users ask questions, you MUST use the available tools.\" However there is no data. I need to respond asking for data, but maybe I can invoke process_data with empty? Probably need to ask user to provide data. Since tool requires data object with values array. I'll ask user to provide data.",
+              "reasoning_content": "We need to process the data, but user just says \"Process this data\". No data provided. Possibly need to ask for data? However instruction: Must use available tools when user asks question. But there's no data. Could respond asking for data. But maybe they expect to call process_data with some default? The tool expects data object with values array of numbers. Since no data, we should ask user to provide data.",
               "tools": null
             }
           }
@@ -79,9 +79,9 @@
         "service_tier": null,
         "system_fingerprint": null,
         "usage": {
-          "completion_tokens": 159,
+          "completion_tokens": 128,
           "prompt_tokens": 305,
-          "total_tokens": 464,
+          "total_tokens": 433,
           "completion_tokens_details": null,
           "prompt_tokens_details": {
             "audio_tokens": null,
