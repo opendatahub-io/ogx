@@ -150,6 +150,10 @@ def client_with_empty_registry(client_with_models):
 # =============================================================================
 # Comparison Filter Tests
 # =============================================================================
+# All queries below pass max_chunks=len(filter_test_chunks): providers such as
+# sqlite-vec run k-NN before applying the metadata filter, so with the default
+# k the nearest chunks could all be filtered out, making results depend on the
+# embedding model's distance ordering instead of the filter logic.
 
 
 @vector_provider_wrapper
@@ -183,7 +187,7 @@ def test_filter_eq_string(
     response = client.vector_io.query(
         vector_store_id=vector_store.id,
         query="technology",
-        params={"filters": filter_obj.model_dump()},
+        params={"max_chunks": len(filter_test_chunks), "filters": filter_obj.model_dump()},
     )
 
     assert response is not None
@@ -225,7 +229,7 @@ def test_filter_ne_string(
     response = client.vector_io.query(
         vector_store_id=vector_store.id,
         query="programming",
-        params={"filters": filter_obj.model_dump()},
+        params={"max_chunks": len(filter_test_chunks), "filters": filter_obj.model_dump()},
     )
 
     assert response is not None
@@ -267,7 +271,7 @@ def test_filter_gt_numeric(
     response = client.vector_io.query(
         vector_store_id=vector_store.id,
         query="technology",
-        params={"filters": filter_obj.model_dump()},
+        params={"max_chunks": len(filter_test_chunks), "filters": filter_obj.model_dump()},
     )
 
     assert response is not None
@@ -309,7 +313,7 @@ def test_filter_gte_numeric(
     response = client.vector_io.query(
         vector_store_id=vector_store.id,
         query="technology",
-        params={"filters": filter_obj.model_dump()},
+        params={"max_chunks": len(filter_test_chunks), "filters": filter_obj.model_dump()},
     )
 
     assert response is not None
@@ -351,7 +355,7 @@ def test_filter_lt_numeric(
     response = client.vector_io.query(
         vector_store_id=vector_store.id,
         query="technology",
-        params={"filters": filter_obj.model_dump()},
+        params={"max_chunks": len(filter_test_chunks), "filters": filter_obj.model_dump()},
     )
 
     assert response is not None
@@ -393,7 +397,7 @@ def test_filter_lte_numeric(
     response = client.vector_io.query(
         vector_store_id=vector_store.id,
         query="technology",
-        params={"filters": filter_obj.model_dump()},
+        params={"max_chunks": len(filter_test_chunks), "filters": filter_obj.model_dump()},
     )
 
     assert response is not None
@@ -435,7 +439,7 @@ def test_filter_in_list(
     response = client.vector_io.query(
         vector_store_id=vector_store.id,
         query="technology",
-        params={"filters": filter_obj.model_dump()},
+        params={"max_chunks": len(filter_test_chunks), "filters": filter_obj.model_dump()},
     )
 
     assert response is not None
@@ -477,7 +481,7 @@ def test_filter_nin_list(
     response = client.vector_io.query(
         vector_store_id=vector_store.id,
         query="fundamentals",
-        params={"filters": filter_obj.model_dump()},
+        params={"max_chunks": len(filter_test_chunks), "filters": filter_obj.model_dump()},
     )
 
     assert response is not None
@@ -519,7 +523,7 @@ def test_filter_eq_boolean(
     response = client.vector_io.query(
         vector_store_id=vector_store.id,
         query="technology",
-        params={"filters": filter_obj.model_dump()},
+        params={"max_chunks": len(filter_test_chunks), "filters": filter_obj.model_dump()},
     )
 
     assert response is not None
@@ -572,7 +576,7 @@ def test_filter_and_compound(
     response = client.vector_io.query(
         vector_store_id=vector_store.id,
         query="technology",
-        params={"filters": filter_obj.model_dump()},
+        params={"max_chunks": len(filter_test_chunks), "filters": filter_obj.model_dump()},
     )
 
     assert response is not None
@@ -621,7 +625,7 @@ def test_filter_or_compound(
     response = client.vector_io.query(
         vector_store_id=vector_store.id,
         query="technology",
-        params={"filters": filter_obj.model_dump()},
+        params={"max_chunks": len(filter_test_chunks), "filters": filter_obj.model_dump()},
     )
 
     assert response is not None
@@ -677,7 +681,7 @@ def test_filter_nested_compound(
     response = client.vector_io.query(
         vector_store_id=vector_store.id,
         query="technology",
-        params={"filters": filter_obj.model_dump()},
+        params={"max_chunks": len(filter_test_chunks), "filters": filter_obj.model_dump()},
     )
 
     assert response is not None
@@ -726,7 +730,7 @@ def test_filter_no_matches(
     response = client.vector_io.query(
         vector_store_id=vector_store.id,
         query="technology",
-        params={"filters": filter_obj.model_dump()},
+        params={"max_chunks": len(filter_test_chunks), "filters": filter_obj.model_dump()},
     )
 
     assert response is not None
@@ -807,7 +811,7 @@ def test_filter_multiple_and_conditions(
     response = client.vector_io.query(
         vector_store_id=vector_store.id,
         query="neural networks",
-        params={"filters": filter_obj.model_dump()},
+        params={"max_chunks": len(filter_test_chunks), "filters": filter_obj.model_dump()},
     )
 
     assert response is not None
