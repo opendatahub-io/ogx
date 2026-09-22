@@ -13,7 +13,7 @@ from ogx.log import get_logger
 from ogx_api.internal.sqlstore import ColumnType
 
 from .reader import _fields, _handle_row_error, _ReaderFor, _RunOptions, _SourceReader, _Stats
-from .target import OwnerSubjectDeriver, PraxisWriter, TenantDeriver, transform_response
+from .target import DEFAULT_OWNER_ISSUER, OwnerSubjectDeriver, PraxisWriter, TenantDeriver, transform_response
 
 logger = get_logger(name=__name__, category="cli")
 
@@ -40,6 +40,8 @@ async def _migrate_responses(
     stats: _Stats,
     progress: Progress,
     opts: _RunOptions,
+    *,
+    owner_issuer: str = DEFAULT_OWNER_ISSUER,
 ) -> None:
     task = progress.add_task("responses", total=await reader.count(table), **_fields(stats, "responses"))
     async for batch in reader.page(table, "id", opts.batch_size):
@@ -47,7 +49,7 @@ async def _migrate_responses(
         for row in batch:
             stats.read["responses"] += 1
             try:
-                praxis_row = transform_response(row, tenant, owner_subject)
+                praxis_row = transform_response(row, tenant, owner_subject, owner_issuer)
             except Exception as exc:
                 _handle_row_error("responses", str(row.get("id")), exc, stats, opts.continue_on_error)
                 continue
@@ -67,10 +69,14 @@ async def _run_responses_phase(
     stats: _Stats,
     progress: Progress,
     opts: _RunOptions,
+    *,
+    owner_issuer: str = DEFAULT_OWNER_ISSUER,
 ) -> None:
     src_table = responses_ref.table_name
     reader = await reader_for(responses_ref.backend, src_table)
     if not await reader.prepare(src_table, _RESPONSES_COLUMNS, "id"):
         logger.warning("Source responses table absent; skipping responses phase", table=src_table)
         return
-    await _migrate_responses(reader, writer, tenant, owner_subject, src_table, stats, progress, opts)
+    await _migrate_responses(
+        reader, writer, tenant, owner_subject, src_table, stats, progress, opts, owner_issuer=owner_issuer
+    )

@@ -99,10 +99,10 @@ class _CapturingWriter(PraxisWriter):
             pending_primary_keys: set[tuple] = set()
             pending_positions: set[tuple] = set()
             for row in rows:
-                primary_key = (row[0], row[1], row[3])
+                primary_key = (row[0], row[1], row[4])
                 if primary_key in self._item_primary_keys or primary_key in pending_primary_keys:
                     continue  # Matches ON CONFLICT (item_id, tenant_id, conversation_id) DO NOTHING.
-                position_key = (row[1], row[3], row[6])
+                position_key = (row[1], row[4], row[7])
                 if position_key in self._item_positions or position_key in pending_positions:
                     raise ValueError(f"duplicate Praxis item position: {position_key!r}")
                 pending_rows.append(row)
@@ -276,12 +276,23 @@ async def test_item_passes_share_one_source_snapshot():
 
 
 def _sample_batches():
+    issuer = "urn:rhoai:ogx:production"
     return {
         "responses": [
-            ("resp_1", "default", "fallback-owner", 111, "gpt-4o", '{"id":"resp_1"}', "[]", '[{"role":"user"}]')
+            (
+                "resp_1",
+                "default",
+                "fallback-owner",
+                issuer,
+                111,
+                "gpt-4o",
+                '{"id":"resp_1"}',
+                "[]",
+                '[{"role":"user"}]',
+            )
         ],
-        "conversations": [("conv_1", "acme", "owner", 100, '{"k":"v"}', "[]")],
-        "items": [("item_1", "acme", "owner", "conv_1", '{"type":"message"}', 100, 0)],
+        "conversations": [("conv_1", "acme", "owner", issuer, 100, '{"k":"v"}', "[]")],
+        "items": [("item_1", "acme", "owner", issuer, "conv_1", '{"type":"message"}', 100, 0)],
     }
 
 
@@ -293,6 +304,7 @@ def test_normalizer_parses_json_columns_and_keys_by_pk():
     assert resp["response_object"] == {"id": "resp_1"}
     assert resp["input"] == []
     assert resp["messages"] == [{"role": "user"}]
+    assert resp["owner_issuer"] == "urn:rhoai:ogx:production"
     assert resp["created_at"] == 111
     assert normalized["conversations"]["conv_1\x00acme"]["metadata"] == {"k": "v"}
     assert normalized["items"]["item_1\x00acme\x00conv_1"]["item_data"] == {"type": "message"}
@@ -301,28 +313,34 @@ def test_normalizer_parses_json_columns_and_keys_by_pk():
 def test_normalizer_is_order_independent():
     batches = _sample_batches()
     batches["items"] = [
-        ("item_b", "t", "owner", "c", "{}", 1, 1),
-        ("item_a", "t", "owner", "c", "{}", 0, 0),
+        ("item_b", "t", "owner", "urn:rhoai:ogx:production", "c", "{}", 1, 1),
+        ("item_a", "t", "owner", "urn:rhoai:ogx:production", "c", "{}", 0, 0),
     ]
     reversed_batches = {**batches, "items": list(reversed(batches["items"]))}
     assert _compare.normalize_all(batches) == _compare.normalize_all(reversed_batches)
 
 
 def test_normalizer_rejects_duplicate_primary_key():
-    dup = {"items": [("i", "t", "owner", "c", "{}", 0, 0), ("i", "t", "owner", "c", "{}", 9, 9)]}
+    issuer = "urn:rhoai:ogx:production"
+    dup = {
+        "items": [
+            ("i", "t", "owner", issuer, "c", "{}", 0, 0),
+            ("i", "t", "owner", issuer, "c", "{}", 9, 9),
+        ]
+    }
     with pytest.raises(ValueError, match="duplicate primary key"):
         _compare.normalize_all(dup)
 
 
 def test_normalizer_rejects_wrong_column_count():
-    with pytest.raises(ValueError, match="expected 7 columns"):
+    with pytest.raises(ValueError, match="expected 8 columns"):
         _compare.normalize_rows("items", [("i", "t", "c")])
 
 
 async def test_capturing_writer_rejects_duplicate_item_position():
     writer = _CapturingWriter()
-    first = ("item_1", "tenant_a", "owner", "conv_1", "{}", 100, 0)
-    duplicate_position = ("item_2", "tenant_a", "owner", "conv_1", "{}", 101, 0)
+    first = ("item_1", "tenant_a", "owner", "urn:rhoai:ogx:production", "conv_1", "{}", 100, 0)
+    duplicate_position = ("item_2", "tenant_a", "owner", "urn:rhoai:ogx:production", "conv_1", "{}", 101, 0)
 
     await writer.write_batch("items", [first])
     with pytest.raises(ValueError, match="duplicate Praxis item position"):
