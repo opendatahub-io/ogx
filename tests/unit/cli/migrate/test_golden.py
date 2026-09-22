@@ -59,9 +59,8 @@ from tests.integration.migration import _compare, seed_source
 _RESPONSES_TABLE = "responses"
 _CONVERSATIONS_TABLE = "openai_conversations"
 
-# default_tenant_id used for the SINGLE-mode leg; must match the workflow's
-# OGX_DEFAULT_TENANT_ID and is what the message-only orphan derives (it has no
-# owner_principal, so it falls back to the deployment default tenant).
+# default_tenant_id used for the SINGLE-mode source seed; it must match the
+# workflow's OGX_DEFAULT_TENANT_ID.
 _DEFAULT_TENANT_ID = "acme-corp"
 
 _MODES = {
@@ -163,10 +162,10 @@ async def _migrate_in_process(mode: TenancyMode, default_tenant_id: str | None) 
 
             writer = _CapturingWriter()
             position_allocator = ItemPositionAllocator()
-            tenant = TenantDeriver()  # sentinel "default", matching the CLI default
+            tenant = TenantDeriver(fallback_tenant="default")
             stats = _Stats()
             # A single-row batch exercises position planning across page boundaries.
-            opts = _RunOptions(batch_size=1, skip_errors=False)
+            opts = _RunOptions(batch_size=1, continue_on_error=False)
             with _disabled_progress() as progress:
                 await _migrate_responses(reader, writer, tenant, _RESPONSES_TABLE, stats, progress, opts)
                 await _migrate_conversations(
@@ -246,7 +245,7 @@ async def test_item_passes_share_one_source_snapshot():
                     {"id": "item_legacy", "type": "message"},
                     position=0,
                     conv_row={"id": "conv_legacy", "created_at": 99, "owner_principal": "tenant_1"},
-                    tenant=TenantDeriver(),
+                    tenant=TenantDeriver(fallback_tenant="default"),
                 ),
                 retain=True,
             )
@@ -255,10 +254,10 @@ async def test_item_passes_share_one_source_snapshot():
                 await _migrate_items(
                     reader,
                     writer,
-                    TenantDeriver(),
+                    TenantDeriver(fallback_tenant="default"),
                     _Stats(),
                     progress,
-                    _RunOptions(batch_size=1, skip_errors=False),
+                    _RunOptions(batch_size=1, continue_on_error=False),
                     allocator,
                 )
 

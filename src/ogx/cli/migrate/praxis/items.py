@@ -92,7 +92,7 @@ async def _migrate_items(
                     praxis_item = transform_item(row, tenant)
                 except Exception as exc:
                     item_id = str(row.get("id"))
-                    _handle_row_error("items", item_id, exc, stats, opts.skip_errors)
+                    _handle_row_error("items", item_id, exc, stats, opts.continue_on_error)
                     skipped_item_ids.add(item_id)
                     continue
                 stats.transformed["items"] += 1
