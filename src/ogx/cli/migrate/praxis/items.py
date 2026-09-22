@@ -22,7 +22,7 @@ from ogx.log import get_logger
 from ogx_api.internal.sqlstore import ColumnType
 
 from .reader import _fields, _handle_row_error, _ReaderFor, _RunOptions, _SourceReader, _Stats
-from .target import ItemPositionAllocator, PraxisWriter, TenantDeriver, transform_item
+from .target import ItemPositionAllocator, OwnerSubjectDeriver, PraxisWriter, TenantDeriver, transform_item
 
 # Not config-driven (unlike the conversations table): conversation_items always
 # lives on the conversations backend under this physical name.
@@ -69,6 +69,7 @@ async def _migrate_items(
     reader: _SourceReader,
     writer: PraxisWriter | None,
     tenant: TenantDeriver,
+    owner_subject: OwnerSubjectDeriver,
     stats: _Stats,
     progress: Progress,
     opts: _RunOptions,
@@ -89,7 +90,7 @@ async def _migrate_items(
             for row in batch:
                 stats.read["items"] += 1
                 try:
-                    praxis_item = transform_item(row, tenant)
+                    praxis_item = transform_item(row, tenant, owner_subject)
                 except Exception as exc:
                     item_id = str(row.get("id"))
                     _handle_row_error("items", item_id, exc, stats, opts.continue_on_error)
@@ -103,7 +104,7 @@ async def _migrate_items(
         if writer is not None:
             async for batch in snapshot.page(_CONVERSATION_ITEMS_TABLE, "id", opts.batch_size):
                 out_rows = [
-                    position_allocator.allocate("items", transform_item(row, tenant)).as_row()
+                    position_allocator.allocate("items", transform_item(row, tenant, owner_subject)).as_row()
                     for row in batch
                     if str(row.get("id")) not in skipped_item_ids
                 ]
@@ -116,6 +117,7 @@ async def _run_items_phase(
     reader_for: _ReaderFor,
     writer: PraxisWriter | None,
     tenant: TenantDeriver,
+    owner_subject: OwnerSubjectDeriver,
     stats: _Stats,
     progress: Progress,
     opts: _RunOptions,
@@ -126,4 +128,4 @@ async def _run_items_phase(
         logger.warning("Source conversation_items table absent; skipping items phase")
         await _write_retained_items(writer, stats, opts, position_allocator)
         return
-    await _migrate_items(reader, writer, tenant, stats, progress, opts, position_allocator)
+    await _migrate_items(reader, writer, tenant, owner_subject, stats, progress, opts, position_allocator)

@@ -43,7 +43,7 @@ from .conversations import _run_conversations_phase
 from .items import _run_items_phase
 from .reader import _build_progress, _ReaderFor, _RunOptions, _SourceReader, _Stats
 from .responses import _run_responses_phase
-from .target import ItemPositionAllocator, PraxisWriter, TenantDeriver
+from .target import ItemPositionAllocator, OwnerSubjectDeriver, PraxisWriter, TenantDeriver
 
 logger = get_logger(name=__name__, category="cli")
 
@@ -119,6 +119,7 @@ async def _run(args: argparse.Namespace) -> None:
 
     tables_scope = _parse_tables(args.tables)
     tenant = TenantDeriver(fallback_tenant=args.fallback_tenant)
+    owner_subject = OwnerSubjectDeriver(fallback_owner_subject=args.fallback_owner_subject)
     orphan_created_at = args.orphan_created_at if args.orphan_created_at is not None else int(time.time())
 
     # Bootstrap the source stack exactly as the server does (env-resolved config,
@@ -194,7 +195,9 @@ async def _run(args: argparse.Namespace) -> None:
     try:
         with _build_progress() as progress:
             if "responses" in tables_scope and responses_ref is not None:
-                await _run_responses_phase(responses_ref, reader_for, writer, tenant, stats, progress, opts)
+                await _run_responses_phase(
+                    responses_ref, reader_for, writer, tenant, owner_subject, stats, progress, opts
+                )
 
             if "conversations" in tables_scope and conversations_ref is not None:
                 await _run_conversations_phase(
@@ -204,6 +207,7 @@ async def _run(args: argparse.Namespace) -> None:
                     reader_for,
                     writer,
                     tenant,
+                    owner_subject,
                     "items" in tables_scope,
                     orphan_created_at,
                     stats,
@@ -218,6 +222,7 @@ async def _run(args: argparse.Namespace) -> None:
                     reader_for,
                     writer,
                     tenant,
+                    owner_subject,
                     stats,
                     progress,
                     opts,
@@ -307,6 +312,15 @@ class PraxisMigrate(Subcommand):
             type=str,
             default=None,
             help="Fallback tenant_id for rows without a source tenant_id; optional and validated against the OGX tenant regex.",
+        )
+        p.add_argument(
+            "--fallback-owner-subject",
+            type=str,
+            default=None,
+            help=(
+                "Optional fallback owner_subject for rows without a non-empty source owner_principal; "
+                "if omitted, those rows fail validation."
+            ),
         )
         p.add_argument(
             "--orphan-created-at",
