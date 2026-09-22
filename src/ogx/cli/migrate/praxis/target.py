@@ -38,6 +38,21 @@ from ogx_api import (
 # preservation keeps isolation exactly as it was in the source.
 _TENANT_ID_RE = re.compile(r"^[a-z0-9][a-z0-9\-_]{0,127}$")
 
+# RFC 8141 URNs use an ASCII namespace identifier and a non-empty namespace
+# specific string. The optional r-component, q-component, and fragment are
+# included so this accepts general URNs rather than only the simple form used
+# by the default issuer.
+_URN_COMPONENT = r"(?:[A-Za-z0-9._~!$&'()*+,;=:@/-]|%[0-9A-Fa-f]{2})+"
+_URN_SUFFIX = r"(?:[A-Za-z0-9._~!$&'()*+,;=:@/?-]|%[0-9A-Fa-f]{2})+"
+_URN_NID = r"[A-Za-z0-9][A-Za-z0-9-]{0,30}[A-Za-z0-9]"
+_URN_RE = re.compile(
+    rf"^urn:{_URN_NID}:{_URN_COMPONENT}"
+    rf"(?:\?[+=]{_URN_SUFFIX})?(?:#{_URN_SUFFIX})?$",
+    re.IGNORECASE,
+)
+
+DEFAULT_OWNER_ISSUER = "urn:rhoai:ogx:production"
+
 # PostgreSQL identifier rules for target table names. Names are interpolated
 # unquoted into INSERT statements, so restrict them to a safe character set.
 _TABLE_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -86,6 +101,14 @@ def _validate_fallback_owner_subject(fallback_owner_subject: str | None) -> str 
             "owner_principal"
         )
     return fallback_owner_subject.strip()
+
+
+def validate_owner_issuer(owner_issuer: str) -> str:
+    """Validate and normalize the issuer written to every Praxis row."""
+    normalized = owner_issuer.strip()
+    if not _URN_RE.fullmatch(normalized):
+        raise ValueError(f"Failed to validate --owner-issuer {owner_issuer!r}: must be a valid URN")
+    return normalized
 
 
 def validate_table_name(name: str) -> str:
@@ -155,6 +178,7 @@ class PraxisResponseRow:
 
     tenant_id: str
     owner_subject: str
+    owner_issuer: str
     id: str
     created_at: int
     model: str
@@ -168,6 +192,7 @@ class PraxisResponseRow:
             self.id,
             self.tenant_id,
             self.owner_subject,
+            self.owner_issuer,
             self.created_at,
             self.model,
             self.response_object,
@@ -183,6 +208,7 @@ class PraxisConversationRow:
     conversation_id: str
     tenant_id: str
     owner_subject: str
+    owner_issuer: str
     created_at: int
     metadata: str
     messages: str
@@ -193,6 +219,7 @@ class PraxisConversationRow:
             self.conversation_id,
             self.tenant_id,
             self.owner_subject,
+            self.owner_issuer,
             self.created_at,
             self.metadata,
             self.messages,
@@ -206,6 +233,7 @@ class PraxisItemRow:
     item_id: str
     tenant_id: str
     owner_subject: str
+    owner_issuer: str
     conversation_id: str
     item_data: str
     created_at: int
@@ -217,6 +245,7 @@ class PraxisItemRow:
             self.item_id,
             self.tenant_id,
             self.owner_subject,
+            self.owner_issuer,
             self.conversation_id,
             self.item_data,
             self.created_at,
@@ -314,7 +343,10 @@ class ItemPositionAllocator:
 
 
 def transform_response(
-    row: Mapping[str, Any], tenant: TenantDeriver, owner_subject: OwnerSubjectDeriver
+    row: Mapping[str, Any],
+    tenant: TenantDeriver,
+    owner_subject: OwnerSubjectDeriver,
+    owner_issuer: str = DEFAULT_OWNER_ISSUER,
 ) -> PraxisResponseRow:
     """Decompose an OGX ``openai_responses`` row into a Praxis responses row.
 
@@ -339,6 +371,7 @@ def transform_response(
         response_object=public.model_dump_json(),
         input=json.dumps(blob.get("input", [])),
         messages=json.dumps(blob.get("messages") or []),
+        owner_issuer=owner_issuer,
     )
 
 
@@ -347,6 +380,7 @@ def transform_conversation(
     messages_row: Mapping[str, Any] | None,
     tenant: TenantDeriver,
     owner_subject: OwnerSubjectDeriver,
+    owner_issuer: str = DEFAULT_OWNER_ISSUER,
 ) -> PraxisConversationRow:
     """Build a Praxis conversations row by joining an ``openai_conversations``
     row with its ``conversation_messages`` row (may be absent).
@@ -372,6 +406,7 @@ def transform_conversation(
         created_at=int(conv_row["created_at"]),
         metadata=json.dumps(conv_row.get("metadata") or {}),
         messages=json.dumps(messages or []),
+        owner_issuer=owner_issuer,
     )
 
 
@@ -380,6 +415,7 @@ def transform_message_only_conversation(
     tenant: TenantDeriver,
     owner_subject: OwnerSubjectDeriver,
     orphan_created_at: int,
+    owner_issuer: str = DEFAULT_OWNER_ISSUER,
 ) -> PraxisConversationRow:
     """Synthesize a Praxis conversations row for a ``conversation_messages``
     orphan — a conversation with continuity messages but no
@@ -391,10 +427,16 @@ def transform_message_only_conversation(
         created_at=int(orphan_created_at),
         metadata="{}",
         messages=json.dumps(messages_row.get("messages") or []),
+        owner_issuer=owner_issuer,
     )
 
 
-def transform_item(row: Mapping[str, Any], tenant: TenantDeriver, owner_subject: OwnerSubjectDeriver) -> PraxisItemRow:
+def transform_item(
+    row: Mapping[str, Any],
+    tenant: TenantDeriver,
+    owner_subject: OwnerSubjectDeriver,
+    owner_issuer: str = DEFAULT_OWNER_ISSUER,
+) -> PraxisItemRow:
     """Copy an OGX ``conversation_items`` row into a Praxis items row.
 
     ``id -> item_id``, ``sort_order -> position`` (legacy ``NULL`` becomes 0),
@@ -409,6 +451,7 @@ def transform_item(row: Mapping[str, Any], tenant: TenantDeriver, owner_subject:
         item_data=json.dumps(row["item_data"]),
         created_at=int(row["created_at"]),
         position=int(sort_order) if sort_order is not None else 0,
+        owner_issuer=owner_issuer,
     )
 
 
@@ -418,6 +461,7 @@ def transform_legacy_inline_item(
     conv_row: Mapping[str, Any],
     tenant: TenantDeriver,
     owner_subject: OwnerSubjectDeriver,
+    owner_issuer: str = DEFAULT_OWNER_ISSUER,
 ) -> PraxisItemRow:
     """Backfill an item from the deprecated inline ``openai_conversations.items``
     list into the Praxis items stream.
@@ -440,6 +484,7 @@ def transform_legacy_inline_item(
         item_data=json.dumps(dict(element)),
         created_at=int(conv_row["created_at"]),
         position=position,
+        owner_issuer=owner_issuer,
     )
 
 
@@ -449,16 +494,16 @@ def transform_legacy_inline_item(
 # is the exact contract. {t} is the validated physical table name.
 _INSERT_SQL: dict[str, str] = {
     "responses": (
-        "INSERT INTO {t} (id, tenant_id, owner_subject, created_at, model, response_object, input, messages) "
-        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (tenant_id, id) DO NOTHING"
+        "INSERT INTO {t} (id, tenant_id, owner_subject, owner_issuer, created_at, model, response_object, input, messages) "
+        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT (tenant_id, id) DO NOTHING"
     ),
     "conversations": (
-        "INSERT INTO {t} (conversation_id, tenant_id, owner_subject, created_at, metadata, messages) "
-        "VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (conversation_id, tenant_id) DO NOTHING"
+        "INSERT INTO {t} (conversation_id, tenant_id, owner_subject, owner_issuer, created_at, metadata, messages) "
+        "VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (conversation_id, tenant_id) DO NOTHING"
     ),
     "items": (
-        "INSERT INTO {t} (item_id, tenant_id, owner_subject, conversation_id, item_data, created_at, position) "
-        "VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (item_id, tenant_id, conversation_id) DO NOTHING"
+        "INSERT INTO {t} (item_id, tenant_id, owner_subject, owner_issuer, conversation_id, item_data, created_at, position) "
+        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (item_id, tenant_id, conversation_id) DO NOTHING"
     ),
 }
 

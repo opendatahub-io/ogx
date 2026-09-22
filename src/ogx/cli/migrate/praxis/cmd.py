@@ -43,7 +43,14 @@ from .conversations import _run_conversations_phase
 from .items import _run_items_phase
 from .reader import _build_progress, _ReaderFor, _RunOptions, _SourceReader, _Stats
 from .responses import _run_responses_phase
-from .target import ItemPositionAllocator, OwnerSubjectDeriver, PraxisWriter, TenantDeriver
+from .target import (
+    DEFAULT_OWNER_ISSUER,
+    ItemPositionAllocator,
+    OwnerSubjectDeriver,
+    PraxisWriter,
+    TenantDeriver,
+    validate_owner_issuer,
+)
 
 logger = get_logger(name=__name__, category="cli")
 
@@ -120,6 +127,7 @@ async def _run(args: argparse.Namespace) -> None:
     tables_scope = _parse_tables(args.tables)
     tenant = TenantDeriver(fallback_tenant=args.fallback_tenant)
     owner_subject = OwnerSubjectDeriver(fallback_owner_subject=args.fallback_owner_subject)
+    owner_issuer = validate_owner_issuer(getattr(args, "owner_issuer", DEFAULT_OWNER_ISSUER))
     orphan_created_at = args.orphan_created_at if args.orphan_created_at is not None else int(time.time())
 
     # Bootstrap the source stack exactly as the server does (env-resolved config,
@@ -196,7 +204,15 @@ async def _run(args: argparse.Namespace) -> None:
         with _build_progress() as progress:
             if "responses" in tables_scope and responses_ref is not None:
                 await _run_responses_phase(
-                    responses_ref, reader_for, writer, tenant, owner_subject, stats, progress, opts
+                    responses_ref,
+                    reader_for,
+                    writer,
+                    tenant,
+                    owner_subject,
+                    stats,
+                    progress,
+                    opts,
+                    owner_issuer=owner_issuer,
                 )
 
             if "conversations" in tables_scope and conversations_ref is not None:
@@ -214,6 +230,7 @@ async def _run(args: argparse.Namespace) -> None:
                     progress,
                     opts,
                     position_allocator,
+                    owner_issuer=owner_issuer,
                 )
 
             if "items" in tables_scope and conversations_ref is not None:
@@ -227,6 +244,7 @@ async def _run(args: argparse.Namespace) -> None:
                     progress,
                     opts,
                     position_allocator,
+                    owner_issuer=owner_issuer,
                 )
     finally:
         if writer is not None:
@@ -321,6 +339,12 @@ class PraxisMigrate(Subcommand):
                 "Optional fallback owner_subject for rows without a non-empty source owner_principal; "
                 "if omitted, those rows fail validation."
             ),
+        )
+        p.add_argument(
+            "--owner-issuer",
+            type=validate_owner_issuer,
+            default=DEFAULT_OWNER_ISSUER,
+            help="URN identifying the OGX deployment that owns the migrated Praxis state.",
         )
         p.add_argument(
             "--orphan-created-at",

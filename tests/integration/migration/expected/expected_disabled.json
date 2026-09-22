@@ -5,6 +5,7 @@
       "created_at": 300,
       "messages": [],
       "metadata": {},
+      "owner_issuer": "urn:rhoai:ogx:production",
       "owner_subject": "fallback-owner",
       "tenant_id": "default"
     },
@@ -21,6 +22,7 @@
       "metadata": {
         "k": "v"
       },
+      "owner_issuer": "urn:rhoai:ogx:production",
       "owner_subject": "acme",
       "tenant_id": "default"
     },
@@ -29,6 +31,7 @@
       "created_at": 200,
       "messages": [],
       "metadata": {},
+      "owner_issuer": "urn:rhoai:ogx:production",
       "owner_subject": "fallback-owner",
       "tenant_id": "default"
     },
@@ -43,6 +46,7 @@
         }
       ],
       "metadata": {},
+      "owner_issuer": "urn:rhoai:ogx:production",
       "owner_subject": "fallback-owner",
       "tenant_id": "default"
     }
@@ -56,6 +60,7 @@
         "type": "message"
       },
       "item_id": "item_1",
+      "owner_issuer": "urn:rhoai:ogx:production",
       "owner_subject": "acme",
       "position": 0,
       "tenant_id": "default"
@@ -69,6 +74,7 @@
         "type": "message"
       },
       "item_id": "item_legacy",
+      "owner_issuer": "urn:rhoai:ogx:production",
       "owner_subject": "fallback-owner",
       "position": 0,
       "tenant_id": "default"
@@ -81,6 +87,7 @@
         "type": "message"
       },
       "item_id": "item_null_sort",
+      "owner_issuer": "urn:rhoai:ogx:production",
       "owner_subject": "acme",
       "position": 1,
       "tenant_id": "default"
@@ -117,6 +124,7 @@
         }
       ],
       "model": "gpt-4o",
+      "owner_issuer": "urn:rhoai:ogx:production",
       "owner_subject": "fallback-owner",
       "response_object": {
         "background": null,

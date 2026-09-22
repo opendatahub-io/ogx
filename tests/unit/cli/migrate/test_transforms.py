@@ -163,6 +163,7 @@ class TestTransformResponse:
         assert result.created_at == 999
         assert result.model == "gpt-4o-mini"
         assert result.tenant_id == "tenant-x"
+        assert result.owner_issuer == "urn:rhoai:ogx:production"
 
     def test_as_row_positional_order(self):
         blob = _stored_response_blob()
@@ -175,15 +176,16 @@ class TestTransformResponse:
             "tenant_id": "o1",
         }
         result = transform_response(row, TenantDeriver(), OwnerSubjectDeriver("fallback-owner"))
-        # (id, tenant_id, owner_subject, created_at, model, response_object, input, messages)
+        # (id, tenant_id, owner_subject, owner_issuer, created_at, model, response_object, input, messages)
         as_row = result.as_row()
         assert as_row[0] == "resp_1"
         assert as_row[1] == "o1"
         assert as_row[2] == "o1"
-        assert as_row[3] == 111
-        assert as_row[4] == "gpt-4o"
-        assert as_row[6] == result.input
-        assert as_row[7] == result.messages
+        assert as_row[3] == "urn:rhoai:ogx:production"
+        assert as_row[4] == 111
+        assert as_row[5] == "gpt-4o"
+        assert as_row[7] == result.input
+        assert as_row[8] == result.messages
 
 
 class TestTransformConversation:
@@ -312,22 +314,24 @@ class TestTransformItem:
             "tenant_id": "o1",
         }
         as_row = transform_item(row, TenantDeriver(), OwnerSubjectDeriver("fallback-owner")).as_row()
-        # (item_id, tenant_id, owner_subject, conversation_id, item_data, created_at, position)
+        # (item_id, tenant_id, owner_subject, owner_issuer, conversation_id, item_data, created_at, position)
         assert as_row[0] == "item_1"
         assert as_row[1] == "o1"
         assert as_row[2] == "o1"
-        assert as_row[3] == "conv_1"
-        assert as_row[5] == 200
-        assert as_row[6] == 3
+        assert as_row[3] == "urn:rhoai:ogx:production"
+        assert as_row[4] == "conv_1"
+        assert as_row[6] == 200
+        assert as_row[7] == 3
 
 
 class TestItemPositionAllocator:
     def test_collision_preserves_source_position_order(self) -> None:
         allocator = ItemPositionAllocator()
-        first = PraxisItemRow("item_a", "tenant_a", "owner_a", "conv_1", "{}", 100, 5)
-        duplicate = PraxisItemRow("item_b", "tenant_a", "owner_a", "conv_1", "{}", 101, 5)
-        earlier = PraxisItemRow("item_c", "tenant_a", "owner_a", "conv_1", "{}", 102, 0)
-        other_conversation = PraxisItemRow("item_d", "tenant_a", "owner_a", "conv_2", "{}", 103, 5)
+        issuer = "urn:rhoai:ogx:production"
+        first = PraxisItemRow("item_a", "tenant_a", "owner_a", issuer, "conv_1", "{}", 100, 5)
+        duplicate = PraxisItemRow("item_b", "tenant_a", "owner_a", issuer, "conv_1", "{}", 101, 5)
+        earlier = PraxisItemRow("item_c", "tenant_a", "owner_a", issuer, "conv_1", "{}", 102, 0)
+        other_conversation = PraxisItemRow("item_d", "tenant_a", "owner_a", issuer, "conv_2", "{}", 103, 5)
 
         allocator.observe("items_legacy", first)
         for item in (duplicate, earlier, other_conversation):
@@ -383,3 +387,45 @@ class TestTransformLegacyInlineItem:
                 tenant=TenantDeriver(),
                 owner_subject=OwnerSubjectDeriver("fallback-owner"),
             )
+
+
+def test_custom_owner_issuer_is_copied_to_every_target_row() -> None:
+    issuer = "urn:example:ogx:test"
+    tenant = TenantDeriver(fallback_tenant="default")
+    owner_subject = OwnerSubjectDeriver("fallback-owner")
+    conv_row = {"id": "conv_1", "created_at": 100, "owner_principal": "owner", "tenant_id": "default"}
+    item_row = {
+        "id": "item_1",
+        "conversation_id": "conv_1",
+        "created_at": 100,
+        "sort_order": 0,
+        "item_data": {"type": "message"},
+        "owner_principal": "owner",
+        "tenant_id": "default",
+    }
+    response_row = {
+        "id": "resp_1",
+        "created_at": 111,
+        "model": "gpt-4o",
+        "response_object": _stored_response_blob(),
+        "owner_principal": "owner",
+        "tenant_id": "default",
+    }
+
+    rows = [
+        transform_response(response_row, tenant, owner_subject, issuer),
+        transform_conversation(conv_row, None, tenant, owner_subject, issuer),
+        transform_message_only_conversation(
+            {"conversation_id": "conv_orphan", "messages": [], "owner_principal": "owner", "tenant_id": "default"},
+            tenant,
+            owner_subject,
+            555,
+            issuer,
+        ),
+        transform_item(item_row, tenant, owner_subject, issuer),
+        transform_legacy_inline_item(
+            {"id": "item_legacy", "type": "message"}, 0, conv_row, tenant, owner_subject, issuer
+        ),
+    ]
+
+    assert {row.owner_issuer for row in rows} == {issuer}

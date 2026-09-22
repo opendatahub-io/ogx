@@ -26,6 +26,7 @@ from ogx_api.internal.sqlstore import ColumnType
 
 from .reader import _fields, _handle_row_error, _ReaderFor, _RunOptions, _SourceReader, _Stats
 from .target import (
+    DEFAULT_OWNER_ISSUER,
     ItemPositionAllocator,
     OwnerSubjectDeriver,
     PraxisItemRow,
@@ -64,6 +65,8 @@ async def _transform_conversation_row(
     seen: set[str],
     stats: _Stats,
     opts: _RunOptions,
+    *,
+    owner_issuer: str = DEFAULT_OWNER_ISSUER,
 ) -> tuple[tuple[Any, ...] | None, list[PraxisItemRow]]:
     """Transform one conversations-table row plus its legacy inline items.
 
@@ -78,7 +81,7 @@ async def _transform_conversation_row(
             if msg_available and msg_reader
             else None
         )
-        praxis_conv = transform_conversation(conv_row, messages_row, tenant, owner_subject)
+        praxis_conv = transform_conversation(conv_row, messages_row, tenant, owner_subject, owner_issuer)
     except Exception as exc:
         _handle_row_error("conversations", conv_id, exc, stats, opts.continue_on_error)
         return None, []
@@ -89,7 +92,9 @@ async def _transform_conversation_row(
     if isinstance(inline, list):
         for position, element in enumerate(inline):
             try:
-                praxis_item = transform_legacy_inline_item(element, position, conv_row, tenant, owner_subject)
+                praxis_item = transform_legacy_inline_item(
+                    element, position, conv_row, tenant, owner_subject, owner_issuer
+                )
             except Exception as exc:
                 _handle_row_error("items_legacy", f"{conv_id}[{position}]", exc, stats, opts.continue_on_error)
                 continue
@@ -111,6 +116,8 @@ async def _migrate_known_conversations(
     progress: Progress,
     opts: _RunOptions,
     position_allocator: ItemPositionAllocator,
+    *,
+    owner_issuer: str = DEFAULT_OWNER_ISSUER,
 ) -> set[str]:
     """Pass A — openai_conversations ⋈ conversation_messages, plus legacy inline-item backfill.
 
@@ -134,6 +141,7 @@ async def _migrate_known_conversations(
                 seen,
                 stats,
                 opts,
+                owner_issuer=owner_issuer,
             )
             if conv_dict is not None:
                 conv_out.append(conv_dict)
@@ -156,6 +164,8 @@ async def _migrate_orphan_conversations(
     stats: _Stats,
     progress: Progress,
     opts: _RunOptions,
+    *,
+    owner_issuer: str = DEFAULT_OWNER_ISSUER,
 ) -> None:
     """Pass B — message-only orphans: conversation_messages rows with no openai_conversations record."""
     orphan_task = progress.add_task("conversations (orphans)", total=None, **_fields(stats, "conversations_orphans"))
@@ -167,7 +177,9 @@ async def _migrate_orphan_conversations(
                 continue
             stats.read["conversations_orphans"] += 1
             try:
-                praxis_conv = transform_message_only_conversation(msg_row, tenant, owner_subject, orphan_created_at)
+                praxis_conv = transform_message_only_conversation(
+                    msg_row, tenant, owner_subject, orphan_created_at, owner_issuer
+                )
             except Exception as exc:
                 _handle_row_error("conversations_orphans", str(conv_id), exc, stats, opts.continue_on_error)
                 continue
@@ -194,6 +206,8 @@ async def _migrate_conversations(
     progress: Progress,
     opts: _RunOptions,
     position_allocator: ItemPositionAllocator,
+    *,
+    owner_issuer: str = DEFAULT_OWNER_ISSUER,
 ) -> None:
     seen: set[str] = set()
     if conv_available:
@@ -210,12 +224,22 @@ async def _migrate_conversations(
             progress,
             opts,
             position_allocator,
+            owner_issuer=owner_issuer,
         )
 
     if not (msg_available and msg_reader):
         return
     await _migrate_orphan_conversations(
-        msg_reader, writer, tenant, owner_subject, orphan_created_at, seen, stats, progress, opts
+        msg_reader,
+        writer,
+        tenant,
+        owner_subject,
+        orphan_created_at,
+        seen,
+        stats,
+        progress,
+        opts,
+        owner_issuer=owner_issuer,
     )
 
 
@@ -233,6 +257,8 @@ async def _run_conversations_phase(
     progress: Progress,
     opts: _RunOptions,
     position_allocator: ItemPositionAllocator,
+    *,
+    owner_issuer: str = DEFAULT_OWNER_ISSUER,
 ) -> None:
     conv_reader = await reader_for(conversations_ref.backend, conv_table)
     conv_available = await conv_reader.prepare(conv_table, _CONVERSATIONS_COLUMNS, "id")
@@ -266,4 +292,5 @@ async def _run_conversations_phase(
         progress,
         opts,
         position_allocator,
+        owner_issuer=owner_issuer,
     )
