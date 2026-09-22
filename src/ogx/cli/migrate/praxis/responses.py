@@ -48,7 +48,7 @@ async def _migrate_responses(
             try:
                 praxis_row = transform_response(row, tenant)
             except Exception as exc:
-                _handle_row_error("responses", str(row.get("id")), exc, stats, opts.skip_errors)
+                _handle_row_error("responses", str(row.get("id")), exc, stats, opts.continue_on_error)
                 continue
             stats.transformed["responses"] += 1
             out_rows.append(praxis_row.as_row())

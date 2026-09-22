@@ -156,7 +156,8 @@ jobs:
       - name: Run initial migration
         run: |
           uv run ogx migrate praxis "$SOURCE_CONFIG" \
-            --orphan-created-at 999
+            --orphan-created-at 999 \
+            --fallback-tenant default
 
       - name: Assert initial migration
         run: uv run pytest -sv tests/integration/migration/test_migration_e2e.py
@@ -164,7 +165,8 @@ jobs:
       - name: Rerun migration to verify idempotency
         run: |
           uv run ogx migrate praxis "$SOURCE_CONFIG" \
-            --orphan-created-at 999
+            --orphan-created-at 999 \
+            --fallback-tenant default
 
       - name: Assert migration remains unchanged
         run: uv run pytest -sv tests/integration/migration/test_migration_e2e.py

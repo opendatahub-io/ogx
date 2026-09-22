@@ -78,7 +78,7 @@ async def _transform_conversation_row(
         )
         praxis_conv = transform_conversation(conv_row, messages_row, tenant)
     except Exception as exc:
-        _handle_row_error("conversations", conv_id, exc, stats, opts.skip_errors)
+        _handle_row_error("conversations", conv_id, exc, stats, opts.continue_on_error)
         return None, []
     stats.transformed["conversations"] += 1
 
@@ -89,7 +89,7 @@ async def _transform_conversation_row(
             try:
                 praxis_item = transform_legacy_inline_item(element, position, conv_row, tenant)
             except Exception as exc:
-                _handle_row_error("items_legacy", f"{conv_id}[{position}]", exc, stats, opts.skip_errors)
+                _handle_row_error("items_legacy", f"{conv_id}[{position}]", exc, stats, opts.continue_on_error)
                 continue
             stats.transformed["items_legacy"] += 1
             item_rows.append(praxis_item)
@@ -164,7 +164,7 @@ async def _migrate_orphan_conversations(
             try:
                 praxis_conv = transform_message_only_conversation(msg_row, tenant, orphan_created_at)
             except Exception as exc:
-                _handle_row_error("conversations_orphans", str(conv_id), exc, stats, opts.skip_errors)
+                _handle_row_error("conversations_orphans", str(conv_id), exc, stats, opts.continue_on_error)
                 continue
             seen.add(conv_id)
             stats.transformed["conversations_orphans"] += 1

@@ -7,7 +7,7 @@
       "metadata": {},
       "tenant_id": "default"
     },
-    "conv_joined\u0000acme": {
+    "conv_joined\u0000default": {
       "conversation_id": "conv_joined",
       "created_at": 100,
       "messages": [
@@ -20,7 +20,7 @@
       "metadata": {
         "k": "v"
       },
-      "tenant_id": "acme"
+      "tenant_id": "default"
     },
     "conv_legacy\u0000default": {
       "conversation_id": "conv_legacy",
@@ -44,7 +44,7 @@
     }
   },
   "items": {
-    "item_1\u0000acme\u0000conv_joined": {
+    "item_1\u0000default\u0000conv_joined": {
       "conversation_id": "conv_joined",
       "created_at": 100,
       "item_data": {
@@ -53,7 +53,7 @@
       },
       "item_id": "item_1",
       "position": 0,
-      "tenant_id": "acme"
+      "tenant_id": "default"
     },
     "item_legacy\u0000default\u0000conv_legacy": {
       "conversation_id": "conv_legacy",
@@ -67,7 +67,7 @@
       "position": 0,
       "tenant_id": "default"
     },
-    "item_null_sort\u0000acme\u0000conv_joined": {
+    "item_null_sort\u0000default\u0000conv_joined": {
       "conversation_id": "conv_joined",
       "created_at": 105,
       "item_data": {
@@ -76,7 +76,7 @@
       },
       "item_id": "item_null_sort",
       "position": 1,
-      "tenant_id": "acme"
+      "tenant_id": "default"
     }
   },
   "responses": {

@@ -15,6 +15,7 @@ import json
 from ogx.cli.migrate.praxis.target import (
     ItemPositionAllocator,
     PraxisItemRow,
+    TenantDerivationError,
     TenantDeriver,
     transform_conversation,
     transform_item,
@@ -76,7 +77,14 @@ def _stored_response_blob(
 class TestTransformResponse:
     def test_response_object_strips_internal_fields_and_round_trips(self):
         blob = _stored_response_blob(messages=[{"role": "user", "content": "hi"}])
-        row = {"id": "resp_1", "created_at": 111, "model": "gpt-4o", "response_object": blob, "owner_principal": "o1"}
+        row = {
+            "id": "resp_1",
+            "created_at": 111,
+            "model": "gpt-4o",
+            "response_object": blob,
+            "owner_principal": "o1",
+            "tenant_id": "o1",
+        }
 
         result = transform_response(row, TenantDeriver())
 
@@ -97,6 +105,7 @@ class TestTransformResponse:
             "model": "gpt-4o",
             "response_object": blob,
             "owner_principal": "o1",
+            "tenant_id": "o1",
         }
 
         result = transform_response(row, TenantDeriver())
@@ -107,7 +116,14 @@ class TestTransformResponse:
     def test_missing_messages_defaults_to_empty_list(self):
         blob = _stored_response_blob(messages=None)  # no messages key at all
         assert "messages" not in blob
-        row = {"id": "resp_1", "created_at": 111, "model": "gpt-4o", "response_object": blob, "owner_principal": "o1"}
+        row = {
+            "id": "resp_1",
+            "created_at": 111,
+            "model": "gpt-4o",
+            "response_object": blob,
+            "owner_principal": "o1",
+            "tenant_id": "o1",
+        }
 
         result = transform_response(row, TenantDeriver())
 
@@ -116,7 +132,14 @@ class TestTransformResponse:
     def test_messages_copied_verbatim(self):
         messages = [{"role": "system", "content": "be nice"}, {"role": "user", "content": "hi"}]
         blob = _stored_response_blob(messages=messages)
-        row = {"id": "resp_1", "created_at": 111, "model": "gpt-4o", "response_object": blob, "owner_principal": "o1"}
+        row = {
+            "id": "resp_1",
+            "created_at": 111,
+            "model": "gpt-4o",
+            "response_object": blob,
+            "owner_principal": "o1",
+            "tenant_id": "o1",
+        }
 
         result = transform_response(row, TenantDeriver())
 
@@ -142,7 +165,14 @@ class TestTransformResponse:
 
     def test_as_row_positional_order(self):
         blob = _stored_response_blob()
-        row = {"id": "resp_1", "created_at": 111, "model": "gpt-4o", "response_object": blob, "owner_principal": "o1"}
+        row = {
+            "id": "resp_1",
+            "created_at": 111,
+            "model": "gpt-4o",
+            "response_object": blob,
+            "owner_principal": "o1",
+            "tenant_id": "o1",
+        }
         result = transform_response(row, TenantDeriver())
         # (id, tenant_id, created_at, model, response_object, input, messages)
         as_row = result.as_row()
@@ -156,11 +186,18 @@ class TestTransformResponse:
 
 class TestTransformConversation:
     def test_conversation_joined_with_messages(self):
-        conv_row = {"id": "conv_1", "created_at": 100, "metadata": {"k": "v"}, "owner_principal": "o1"}
+        conv_row = {
+            "id": "conv_1",
+            "created_at": 100,
+            "metadata": {"k": "v"},
+            "owner_principal": "o1",
+            "tenant_id": "o1",
+        }
         messages_row = {
             "conversation_id": "conv_1",
             "messages": [{"role": "user", "content": "hi"}],
             "owner_principal": "o1",
+            "tenant_id": "o1",
         }
 
         result = transform_conversation(conv_row, messages_row, TenantDeriver())
@@ -172,7 +209,13 @@ class TestTransformConversation:
         assert json.loads(result.messages) == [{"role": "user", "content": "hi"}]
 
     def test_conversation_without_messages_defaults(self):
-        conv_row = {"id": "conv_1", "created_at": 100, "metadata": None, "owner_principal": "o1"}
+        conv_row = {
+            "id": "conv_1",
+            "created_at": 100,
+            "metadata": None,
+            "owner_principal": "o1",
+            "tenant_id": "o1",
+        }
 
         result = transform_conversation(conv_row, None, TenantDeriver())
 
@@ -180,16 +223,23 @@ class TestTransformConversation:
         assert result.metadata == "{}"
 
     def test_mismatched_tenants_between_joined_rows_raises(self):
-        conv_row = {"id": "conv_1", "created_at": 100, "metadata": {"k": "v"}, "owner_principal": "o1"}
+        conv_row = {
+            "id": "conv_1",
+            "created_at": 100,
+            "metadata": {"k": "v"},
+            "owner_principal": "o1",
+            "tenant_id": "o1",
+        }
         messages_row = {
             "conversation_id": "conv_1",
             "messages": [{"role": "user", "content": "hi"}],
             "owner_principal": "o2",
+            "tenant_id": "o2",
         }
 
         import pytest
 
-        with pytest.raises(ValueError, match="disagree|derives"):
+        with pytest.raises(TenantDerivationError, match="disagree|derives"):
             transform_conversation(conv_row, messages_row, TenantDeriver())
 
     def test_message_only_orphan_synthesizes_row(self):
@@ -197,6 +247,7 @@ class TestTransformConversation:
             "conversation_id": "conv_orphan",
             "messages": [{"role": "assistant", "content": "hey"}],
             "owner_principal": "o2",
+            "tenant_id": "o2",
         }
 
         result = transform_message_only_conversation(messages_row, TenantDeriver(), orphan_created_at=555)
@@ -217,6 +268,7 @@ class TestTransformItem:
             "sort_order": 3,
             "item_data": {"type": "message", "id": "item_1"},
             "owner_principal": "o1",
+            "tenant_id": "o1",
         }
 
         result = transform_item(row, TenantDeriver())
@@ -235,6 +287,7 @@ class TestTransformItem:
             "sort_order": None,
             "item_data": {"type": "message", "id": "item_2"},
             "owner_principal": "o1",
+            "tenant_id": "o1",
         }
 
         result = transform_item(row, TenantDeriver())
@@ -249,6 +302,7 @@ class TestTransformItem:
             "sort_order": 3,
             "item_data": {"type": "message"},
             "owner_principal": "o1",
+            "tenant_id": "o1",
         }
         as_row = transform_item(row, TenantDeriver()).as_row()
         # (item_id, tenant_id, conversation_id, item_data, created_at, position)
@@ -290,7 +344,7 @@ class TestItemPositionAllocator:
 
 class TestTransformLegacyInlineItem:
     def test_backfill_inline_item(self):
-        conv_row = {"id": "conv_1", "created_at": 100, "owner_principal": "o1"}
+        conv_row = {"id": "conv_1", "created_at": 100, "owner_principal": "o1", "tenant_id": "o1"}
         element = {"id": "item_legacy", "type": "message", "role": "user"}
 
         result = transform_legacy_inline_item(element, position=2, conv_row=conv_row, tenant=TenantDeriver())
@@ -303,7 +357,7 @@ class TestTransformLegacyInlineItem:
         assert json.loads(result.item_data) == element
 
     def test_backfill_requires_element_id(self):
-        conv_row = {"id": "conv_1", "created_at": 100, "owner_principal": "o1"}
+        conv_row = {"id": "conv_1", "created_at": 100, "owner_principal": "o1", "tenant_id": "o1"}
         import pytest
 
         with pytest.raises(ValueError, match="no 'id'"):
