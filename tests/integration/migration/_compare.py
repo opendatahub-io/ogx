@@ -35,9 +35,18 @@ _EXPECTED_DIR = Path(__file__).parent / "expected"
 # ``as_row()`` tuples in ``target.py`` and the INSERT column lists, so
 # the in-process (tuple) and Postgres (SELECT) producers align on one normalizer.
 TARGET_COLUMNS: dict[str, tuple[str, ...]] = {
-    "responses": ("id", "tenant_id", "created_at", "model", "response_object", "input", "messages"),
-    "conversations": ("conversation_id", "tenant_id", "created_at", "metadata", "messages"),
-    "items": ("item_id", "tenant_id", "conversation_id", "item_data", "created_at", "position"),
+    "responses": (
+        "id",
+        "tenant_id",
+        "owner_subject",
+        "created_at",
+        "model",
+        "response_object",
+        "input",
+        "messages",
+    ),
+    "conversations": ("conversation_id", "tenant_id", "owner_subject", "created_at", "metadata", "messages"),
+    "items": ("item_id", "tenant_id", "owner_subject", "conversation_id", "item_data", "created_at", "position"),
 }
 
 # Columns stored as JSON-in-TEXT by Praxis; parsed back to structures before compare.

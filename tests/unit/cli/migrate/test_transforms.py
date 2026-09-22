@@ -14,6 +14,7 @@ import json
 
 from ogx.cli.migrate.praxis.target import (
     ItemPositionAllocator,
+    OwnerSubjectDeriver,
     PraxisItemRow,
     TenantDerivationError,
     TenantDeriver,
@@ -86,7 +87,7 @@ class TestTransformResponse:
             "tenant_id": "o1",
         }
 
-        result = transform_response(row, TenantDeriver())
+        result = transform_response(row, TenantDeriver(), OwnerSubjectDeriver("fallback-owner"))
 
         public = json.loads(result.response_object)
         assert "input" not in public
@@ -108,7 +109,7 @@ class TestTransformResponse:
             "tenant_id": "o1",
         }
 
-        result = transform_response(row, TenantDeriver())
+        result = transform_response(row, TenantDeriver(), OwnerSubjectDeriver("fallback-owner"))
 
         # input is copied verbatim from the blob — NOT expanded via ancestry walking.
         assert json.loads(result.input) == incremental_input
@@ -125,7 +126,7 @@ class TestTransformResponse:
             "tenant_id": "o1",
         }
 
-        result = transform_response(row, TenantDeriver())
+        result = transform_response(row, TenantDeriver(), OwnerSubjectDeriver("fallback-owner"))
 
         assert result.messages == "[]"
 
@@ -141,7 +142,7 @@ class TestTransformResponse:
             "tenant_id": "o1",
         }
 
-        result = transform_response(row, TenantDeriver())
+        result = transform_response(row, TenantDeriver(), OwnerSubjectDeriver("fallback-owner"))
 
         assert json.loads(result.messages) == messages
 
@@ -156,7 +157,7 @@ class TestTransformResponse:
             "tenant_id": "tenant-x",
         }
 
-        result = transform_response(row, TenantDeriver())
+        result = transform_response(row, TenantDeriver(), OwnerSubjectDeriver("fallback-owner"))
 
         assert result.id == "resp_9"
         assert result.created_at == 999
@@ -173,15 +174,16 @@ class TestTransformResponse:
             "owner_principal": "o1",
             "tenant_id": "o1",
         }
-        result = transform_response(row, TenantDeriver())
-        # (id, tenant_id, created_at, model, response_object, input, messages)
+        result = transform_response(row, TenantDeriver(), OwnerSubjectDeriver("fallback-owner"))
+        # (id, tenant_id, owner_subject, created_at, model, response_object, input, messages)
         as_row = result.as_row()
         assert as_row[0] == "resp_1"
         assert as_row[1] == "o1"
-        assert as_row[2] == 111
-        assert as_row[3] == "gpt-4o"
-        assert as_row[5] == result.input
-        assert as_row[6] == result.messages
+        assert as_row[2] == "o1"
+        assert as_row[3] == 111
+        assert as_row[4] == "gpt-4o"
+        assert as_row[6] == result.input
+        assert as_row[7] == result.messages
 
 
 class TestTransformConversation:
@@ -200,11 +202,12 @@ class TestTransformConversation:
             "tenant_id": "o1",
         }
 
-        result = transform_conversation(conv_row, messages_row, TenantDeriver())
+        result = transform_conversation(conv_row, messages_row, TenantDeriver(), OwnerSubjectDeriver("fallback-owner"))
 
         assert result.conversation_id == "conv_1"
         assert result.created_at == 100
         assert result.tenant_id == "o1"
+        assert result.owner_subject == "o1"
         assert json.loads(result.metadata) == {"k": "v"}
         assert json.loads(result.messages) == [{"role": "user", "content": "hi"}]
 
@@ -217,7 +220,7 @@ class TestTransformConversation:
             "tenant_id": "o1",
         }
 
-        result = transform_conversation(conv_row, None, TenantDeriver())
+        result = transform_conversation(conv_row, None, TenantDeriver(), OwnerSubjectDeriver("fallback-owner"))
 
         assert result.messages == "[]"
         assert result.metadata == "{}"
@@ -240,7 +243,7 @@ class TestTransformConversation:
         import pytest
 
         with pytest.raises(TenantDerivationError, match="disagree|derives"):
-            transform_conversation(conv_row, messages_row, TenantDeriver())
+            transform_conversation(conv_row, messages_row, TenantDeriver(), OwnerSubjectDeriver("fallback-owner"))
 
     def test_message_only_orphan_synthesizes_row(self):
         messages_row = {
@@ -250,11 +253,14 @@ class TestTransformConversation:
             "tenant_id": "o2",
         }
 
-        result = transform_message_only_conversation(messages_row, TenantDeriver(), orphan_created_at=555)
+        result = transform_message_only_conversation(
+            messages_row, TenantDeriver(), OwnerSubjectDeriver("fallback-owner"), orphan_created_at=555
+        )
 
         assert result.conversation_id == "conv_orphan"
         assert result.created_at == 555
         assert result.tenant_id == "o2"
+        assert result.owner_subject == "o2"
         assert result.metadata == "{}"
         assert json.loads(result.messages) == [{"role": "assistant", "content": "hey"}]
 
@@ -271,12 +277,13 @@ class TestTransformItem:
             "tenant_id": "o1",
         }
 
-        result = transform_item(row, TenantDeriver())
+        result = transform_item(row, TenantDeriver(), OwnerSubjectDeriver("fallback-owner"))
 
         assert result.item_id == "item_1"
         assert result.conversation_id == "conv_1"
         assert result.created_at == 200
         assert result.position == 3
+        assert result.owner_subject == "o1"
         assert json.loads(result.item_data) == {"type": "message", "id": "item_1"}
 
     def test_legacy_null_sort_order_becomes_zero(self):
@@ -290,7 +297,7 @@ class TestTransformItem:
             "tenant_id": "o1",
         }
 
-        result = transform_item(row, TenantDeriver())
+        result = transform_item(row, TenantDeriver(), OwnerSubjectDeriver("fallback-owner"))
 
         assert result.position == 0
 
@@ -304,22 +311,23 @@ class TestTransformItem:
             "owner_principal": "o1",
             "tenant_id": "o1",
         }
-        as_row = transform_item(row, TenantDeriver()).as_row()
-        # (item_id, tenant_id, conversation_id, item_data, created_at, position)
+        as_row = transform_item(row, TenantDeriver(), OwnerSubjectDeriver("fallback-owner")).as_row()
+        # (item_id, tenant_id, owner_subject, conversation_id, item_data, created_at, position)
         assert as_row[0] == "item_1"
         assert as_row[1] == "o1"
-        assert as_row[2] == "conv_1"
-        assert as_row[4] == 200
-        assert as_row[5] == 3
+        assert as_row[2] == "o1"
+        assert as_row[3] == "conv_1"
+        assert as_row[5] == 200
+        assert as_row[6] == 3
 
 
 class TestItemPositionAllocator:
     def test_collision_preserves_source_position_order(self) -> None:
         allocator = ItemPositionAllocator()
-        first = PraxisItemRow("item_a", "tenant_a", "conv_1", "{}", 100, 5)
-        duplicate = PraxisItemRow("item_b", "tenant_a", "conv_1", "{}", 101, 5)
-        earlier = PraxisItemRow("item_c", "tenant_a", "conv_1", "{}", 102, 0)
-        other_conversation = PraxisItemRow("item_d", "tenant_a", "conv_2", "{}", 103, 5)
+        first = PraxisItemRow("item_a", "tenant_a", "owner_a", "conv_1", "{}", 100, 5)
+        duplicate = PraxisItemRow("item_b", "tenant_a", "owner_a", "conv_1", "{}", 101, 5)
+        earlier = PraxisItemRow("item_c", "tenant_a", "owner_a", "conv_1", "{}", 102, 0)
+        other_conversation = PraxisItemRow("item_d", "tenant_a", "owner_a", "conv_2", "{}", 103, 5)
 
         allocator.observe("items_legacy", first)
         for item in (duplicate, earlier, other_conversation):
@@ -347,13 +355,20 @@ class TestTransformLegacyInlineItem:
         conv_row = {"id": "conv_1", "created_at": 100, "owner_principal": "o1", "tenant_id": "o1"}
         element = {"id": "item_legacy", "type": "message", "role": "user"}
 
-        result = transform_legacy_inline_item(element, position=2, conv_row=conv_row, tenant=TenantDeriver())
+        result = transform_legacy_inline_item(
+            element,
+            position=2,
+            conv_row=conv_row,
+            tenant=TenantDeriver(),
+            owner_subject=OwnerSubjectDeriver("fallback-owner"),
+        )
 
         assert result.item_id == "item_legacy"
         assert result.conversation_id == "conv_1"
         assert result.created_at == 100
         assert result.position == 2
         assert result.tenant_id == "o1"
+        assert result.owner_subject == "o1"
         assert json.loads(result.item_data) == element
 
     def test_backfill_requires_element_id(self):
@@ -361,4 +376,10 @@ class TestTransformLegacyInlineItem:
         import pytest
 
         with pytest.raises(ValueError, match="no 'id'"):
-            transform_legacy_inline_item({"type": "message"}, position=0, conv_row=conv_row, tenant=TenantDeriver())
+            transform_legacy_inline_item(
+                {"type": "message"},
+                position=0,
+                conv_row=conv_row,
+                tenant=TenantDeriver(),
+                owner_subject=OwnerSubjectDeriver("fallback-owner"),
+            )

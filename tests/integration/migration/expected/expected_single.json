@@ -5,6 +5,7 @@
       "created_at": 300,
       "messages": [],
       "metadata": {},
+      "owner_subject": "fallback-owner",
       "tenant_id": "default"
     },
     "conv_joined\u0000team-a": {
@@ -20,6 +21,7 @@
       "metadata": {
         "k": "v"
       },
+      "owner_subject": "acme",
       "tenant_id": "team-a"
     },
     "conv_legacy\u0000team-b": {
@@ -27,6 +29,7 @@
       "created_at": 200,
       "messages": [],
       "metadata": {},
+      "owner_subject": "fallback-owner",
       "tenant_id": "team-b"
     },
     "conv_orphan\u0000acme-corp": {
@@ -40,6 +43,7 @@
         }
       ],
       "metadata": {},
+      "owner_subject": "fallback-owner",
       "tenant_id": "acme-corp"
     }
   },
@@ -52,6 +56,7 @@
         "type": "message"
       },
       "item_id": "item_1",
+      "owner_subject": "acme",
       "position": 0,
       "tenant_id": "team-a"
     },
@@ -64,6 +69,7 @@
         "type": "message"
       },
       "item_id": "item_legacy",
+      "owner_subject": "fallback-owner",
       "position": 0,
       "tenant_id": "team-b"
     },
@@ -75,6 +81,7 @@
         "type": "message"
       },
       "item_id": "item_null_sort",
+      "owner_subject": "acme",
       "position": 1,
       "tenant_id": "team-a"
     }
@@ -110,6 +117,7 @@
         }
       ],
       "model": "gpt-4o",
+      "owner_subject": "fallback-owner",
       "response_object": {
         "background": null,
         "completed_at": null,

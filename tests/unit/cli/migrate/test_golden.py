@@ -41,6 +41,7 @@ from ogx.cli.migrate.praxis.reader import _build_progress, _read_schema, _RunOpt
 from ogx.cli.migrate.praxis.responses import _RESPONSES_COLUMNS, _migrate_responses
 from ogx.cli.migrate.praxis.target import (
     ItemPositionAllocator,
+    OwnerSubjectDeriver,
     PraxisWriter,
     TenantDeriver,
     transform_legacy_inline_item,
@@ -98,10 +99,10 @@ class _CapturingWriter(PraxisWriter):
             pending_primary_keys: set[tuple] = set()
             pending_positions: set[tuple] = set()
             for row in rows:
-                primary_key = (row[0], row[1], row[2])
+                primary_key = (row[0], row[1], row[3])
                 if primary_key in self._item_primary_keys or primary_key in pending_primary_keys:
                     continue  # Matches ON CONFLICT (item_id, tenant_id, conversation_id) DO NOTHING.
-                position_key = (row[1], row[2], row[5])
+                position_key = (row[1], row[3], row[6])
                 if position_key in self._item_positions or position_key in pending_positions:
                     raise ValueError(f"duplicate Praxis item position: {position_key!r}")
                 pending_rows.append(row)
@@ -163,16 +164,18 @@ async def _migrate_in_process(mode: TenancyMode, default_tenant_id: str | None) 
             writer = _CapturingWriter()
             position_allocator = ItemPositionAllocator()
             tenant = TenantDeriver(fallback_tenant="default")
+            owner_subject = OwnerSubjectDeriver("fallback-owner")
             stats = _Stats()
             # A single-row batch exercises position planning across page boundaries.
             opts = _RunOptions(batch_size=1, continue_on_error=False)
             with _disabled_progress() as progress:
-                await _migrate_responses(reader, writer, tenant, _RESPONSES_TABLE, stats, progress, opts)
+                await _migrate_responses(reader, writer, tenant, owner_subject, _RESPONSES_TABLE, stats, progress, opts)
                 await _migrate_conversations(
                     reader,
                     reader,
                     writer,
                     tenant,
+                    owner_subject,
                     _CONVERSATIONS_TABLE,
                     True,
                     True,
@@ -183,7 +186,7 @@ async def _migrate_in_process(mode: TenancyMode, default_tenant_id: str | None) 
                     opts,
                     position_allocator,
                 )
-                await _migrate_items(reader, writer, tenant, stats, progress, opts, position_allocator)
+                await _migrate_items(reader, writer, tenant, owner_subject, stats, progress, opts, position_allocator)
         finally:
             await shutdown_sqlstore_backends()
             set_default_tenancy_config(TenancyConfig())
@@ -246,6 +249,7 @@ async def test_item_passes_share_one_source_snapshot():
                     position=0,
                     conv_row={"id": "conv_legacy", "created_at": 99, "owner_principal": "tenant_1"},
                     tenant=TenantDeriver(fallback_tenant="default"),
+                    owner_subject=OwnerSubjectDeriver("fallback-owner"),
                 ),
                 retain=True,
             )
@@ -255,6 +259,7 @@ async def test_item_passes_share_one_source_snapshot():
                     reader,
                     writer,
                     TenantDeriver(fallback_tenant="default"),
+                    OwnerSubjectDeriver("fallback-owner"),
                     _Stats(),
                     progress,
                     _RunOptions(batch_size=1, continue_on_error=False),
@@ -272,9 +277,11 @@ async def test_item_passes_share_one_source_snapshot():
 
 def _sample_batches():
     return {
-        "responses": [("resp_1", "default", 111, "gpt-4o", '{"id":"resp_1"}', "[]", '[{"role":"user"}]')],
-        "conversations": [("conv_1", "acme", 100, '{"k":"v"}', "[]")],
-        "items": [("item_1", "acme", "conv_1", '{"type":"message"}', 100, 0)],
+        "responses": [
+            ("resp_1", "default", "fallback-owner", 111, "gpt-4o", '{"id":"resp_1"}', "[]", '[{"role":"user"}]')
+        ],
+        "conversations": [("conv_1", "acme", "owner", 100, '{"k":"v"}', "[]")],
+        "items": [("item_1", "acme", "owner", "conv_1", '{"type":"message"}', 100, 0)],
     }
 
 
@@ -294,28 +301,28 @@ def test_normalizer_parses_json_columns_and_keys_by_pk():
 def test_normalizer_is_order_independent():
     batches = _sample_batches()
     batches["items"] = [
-        ("item_b", "t", "c", "{}", 1, 1),
-        ("item_a", "t", "c", "{}", 0, 0),
+        ("item_b", "t", "owner", "c", "{}", 1, 1),
+        ("item_a", "t", "owner", "c", "{}", 0, 0),
     ]
     reversed_batches = {**batches, "items": list(reversed(batches["items"]))}
     assert _compare.normalize_all(batches) == _compare.normalize_all(reversed_batches)
 
 
 def test_normalizer_rejects_duplicate_primary_key():
-    dup = {"items": [("i", "t", "c", "{}", 0, 0), ("i", "t", "c", "{}", 9, 9)]}
+    dup = {"items": [("i", "t", "owner", "c", "{}", 0, 0), ("i", "t", "owner", "c", "{}", 9, 9)]}
     with pytest.raises(ValueError, match="duplicate primary key"):
         _compare.normalize_all(dup)
 
 
 def test_normalizer_rejects_wrong_column_count():
-    with pytest.raises(ValueError, match="expected 6 columns"):
+    with pytest.raises(ValueError, match="expected 7 columns"):
         _compare.normalize_rows("items", [("i", "t", "c")])
 
 
 async def test_capturing_writer_rejects_duplicate_item_position():
     writer = _CapturingWriter()
-    first = ("item_1", "tenant_a", "conv_1", "{}", 100, 0)
-    duplicate_position = ("item_2", "tenant_a", "conv_1", "{}", 101, 0)
+    first = ("item_1", "tenant_a", "owner", "conv_1", "{}", 100, 0)
+    duplicate_position = ("item_2", "tenant_a", "owner", "conv_1", "{}", 101, 0)
 
     await writer.write_batch("items", [first])
     with pytest.raises(ValueError, match="duplicate Praxis item position"):

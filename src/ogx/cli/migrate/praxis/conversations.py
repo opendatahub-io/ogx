@@ -27,6 +27,7 @@ from ogx_api.internal.sqlstore import ColumnType
 from .reader import _fields, _handle_row_error, _ReaderFor, _RunOptions, _SourceReader, _Stats
 from .target import (
     ItemPositionAllocator,
+    OwnerSubjectDeriver,
     PraxisItemRow,
     PraxisWriter,
     TenantDeriver,
@@ -58,6 +59,7 @@ async def _transform_conversation_row(
     msg_reader: _SourceReader | None,
     msg_available: bool,
     tenant: TenantDeriver,
+    owner_subject: OwnerSubjectDeriver,
     items_in_scope: bool,
     seen: set[str],
     stats: _Stats,
@@ -76,7 +78,7 @@ async def _transform_conversation_row(
             if msg_available and msg_reader
             else None
         )
-        praxis_conv = transform_conversation(conv_row, messages_row, tenant)
+        praxis_conv = transform_conversation(conv_row, messages_row, tenant, owner_subject)
     except Exception as exc:
         _handle_row_error("conversations", conv_id, exc, stats, opts.continue_on_error)
         return None, []
@@ -87,7 +89,7 @@ async def _transform_conversation_row(
     if isinstance(inline, list):
         for position, element in enumerate(inline):
             try:
-                praxis_item = transform_legacy_inline_item(element, position, conv_row, tenant)
+                praxis_item = transform_legacy_inline_item(element, position, conv_row, tenant, owner_subject)
             except Exception as exc:
                 _handle_row_error("items_legacy", f"{conv_id}[{position}]", exc, stats, opts.continue_on_error)
                 continue
@@ -101,6 +103,7 @@ async def _migrate_known_conversations(
     msg_reader: _SourceReader | None,
     writer: PraxisWriter | None,
     tenant: TenantDeriver,
+    owner_subject: OwnerSubjectDeriver,
     conv_table: str,
     msg_available: bool,
     items_in_scope: bool,
@@ -126,6 +129,7 @@ async def _migrate_known_conversations(
                 msg_reader,
                 msg_available,
                 tenant,
+                owner_subject,
                 items_in_scope,
                 seen,
                 stats,
@@ -146,6 +150,7 @@ async def _migrate_orphan_conversations(
     msg_reader: _SourceReader,
     writer: PraxisWriter | None,
     tenant: TenantDeriver,
+    owner_subject: OwnerSubjectDeriver,
     orphan_created_at: int,
     seen: set[str],
     stats: _Stats,
@@ -162,7 +167,7 @@ async def _migrate_orphan_conversations(
                 continue
             stats.read["conversations_orphans"] += 1
             try:
-                praxis_conv = transform_message_only_conversation(msg_row, tenant, orphan_created_at)
+                praxis_conv = transform_message_only_conversation(msg_row, tenant, owner_subject, orphan_created_at)
             except Exception as exc:
                 _handle_row_error("conversations_orphans", str(conv_id), exc, stats, opts.continue_on_error)
                 continue
@@ -179,6 +184,7 @@ async def _migrate_conversations(
     msg_reader: _SourceReader | None,
     writer: PraxisWriter | None,
     tenant: TenantDeriver,
+    owner_subject: OwnerSubjectDeriver,
     conv_table: str,
     conv_available: bool,
     msg_available: bool,
@@ -196,6 +202,7 @@ async def _migrate_conversations(
             msg_reader,
             writer,
             tenant,
+            owner_subject,
             conv_table,
             msg_available,
             items_in_scope,
@@ -207,7 +214,9 @@ async def _migrate_conversations(
 
     if not (msg_available and msg_reader):
         return
-    await _migrate_orphan_conversations(msg_reader, writer, tenant, orphan_created_at, seen, stats, progress, opts)
+    await _migrate_orphan_conversations(
+        msg_reader, writer, tenant, owner_subject, orphan_created_at, seen, stats, progress, opts
+    )
 
 
 async def _run_conversations_phase(
@@ -217,6 +226,7 @@ async def _run_conversations_phase(
     reader_for: _ReaderFor,
     writer: PraxisWriter | None,
     tenant: TenantDeriver,
+    owner_subject: OwnerSubjectDeriver,
     items_in_scope: bool,
     orphan_created_at: int,
     stats: _Stats,
@@ -246,6 +256,7 @@ async def _run_conversations_phase(
         msg_reader,
         writer,
         tenant,
+        owner_subject,
         conv_table,
         conv_available,
         msg_available,
