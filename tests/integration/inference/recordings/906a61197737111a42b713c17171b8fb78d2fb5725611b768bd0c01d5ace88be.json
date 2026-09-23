@@ -1,0 +1,77 @@
+{
+  "test_id": "tests/integration/inference/test_openai_completion.py::test_openai_chat_completion_non_streaming[openai_client-txt=llama-cpp-server/qwen3-0.6b-inference:chat_completion:non_streaming_02]",
+  "request": {
+    "method": "POST",
+    "url": "http://localhost:8080/v1/v1/chat/completions",
+    "headers": {},
+    "body": {
+      "model": "qwen3-0.6b",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Which planet has rings around it with a name starting with letter S?"
+        }
+      ],
+      "stream": false
+    },
+    "endpoint": "/v1/chat/completions",
+    "model": "qwen3-0.6b",
+    "provider_metadata": {
+      "openai_sdk_version": "2.43.0"
+    }
+  },
+  "response": {
+    "body": {
+      "__type__": "openai.types.chat.chat_completion.ChatCompletion",
+      "__data__": {
+        "id": "rec-906a61197737",
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "content": "The planet with rings around it and a name starting with the letter **S** is **Saturn**.",
+              "refusal": null,
+              "role": "assistant",
+              "annotations": null,
+              "audio": null,
+              "function_call": null,
+              "tool_calls": null,
+              "reasoning_content": "Okay, so the question is asking which planet has rings around it and the name starts with the letter S. Let me think about this step by step.\n\nFirst, I know that the planets are in our solar system. The planets are named after their discoverers, so maybe the answer is one of the known planets. The options usually include Mercury, Venus, Earth, Mars, etc., but maybe there's a trick here.\n\nWait, the question says \"rings around it\". So the planet has rings. Which planets do that? Mercury has rings? No, I think Mercury is the only planet with rings. Venus has a ring system, but Venus is not a planet in the same way as Mercury. Wait, no, Venus is a planet, and it has rings. But I'm not sure if Venus is considered a ring planet. Mercury has rings, but I think Mercury is a dwarf planet. Let me check my knowledge.\n\nMercury is a planet, but it's not a ring planet. Venus is a planet with rings. So maybe the answer is Venus. But then Venus is not starting with S. Wait, the question says the name starts with S. So if the planet's name starts with S, then Venus would be a possibility, but Venus is not. Let me think again.\n\nAlternatively, maybe the answer is Saturn. Saturn is a planet with rings. And its name starts with S. Yes! Saturn. So the answer is Saturn. Let me confirm. Saturn's name is \"Saturn\", which starts with S. And it has rings around it. So yes, that's correct.\n"
+            }
+          }
+        ],
+        "created": 0,
+        "model": "qwen3-0.6b",
+        "object": "chat.completion",
+        "moderation": null,
+        "service_tier": null,
+        "system_fingerprint": "b10964-b29c606e2",
+        "usage": {
+          "completion_tokens": 354,
+          "prompt_tokens": 22,
+          "total_tokens": 376,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": {
+            "audio_tokens": null,
+            "cached_tokens": 0
+          }
+        },
+        "timings": {
+          "cache_n": 0,
+          "prompt_n": 22,
+          "prompt_ms": 166.007,
+          "prompt_per_token_ms": 7.545772727272728,
+          "prompt_per_second": 132.52453209804406,
+          "predicted_n": 354,
+          "predicted_ms": 9882.488,
+          "predicted_per_token_ms": 27.995716713881016,
+          "predicted_per_second": 35.71974992532245
+        }
+      }
+    },
+    "is_streaming": false
+  },
+  "id_normalization_mapping": {}
+}

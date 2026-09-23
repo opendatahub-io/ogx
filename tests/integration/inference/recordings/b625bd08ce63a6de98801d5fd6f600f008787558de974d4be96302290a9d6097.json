@@ -1,0 +1,110 @@
+{
+  "test_id": "tests/integration/inference/test_openai_completion.py::test_openai_chat_completion_structured_output[txt=llama-cpp-server/qwen3-0.6b-inference:chat_completion:structured_output]",
+  "request": {
+    "method": "POST",
+    "url": "http://localhost:8080/v1/v1/chat/completions",
+    "headers": {},
+    "body": {
+      "model": "qwen3-0.6b",
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a helpful assistant. Michael Jordan was born in 1963. His first name is \"Michael\", He played basketball for the Chicago Bulls for 15 seasons and was drafted in 1984"
+        },
+        {
+          "role": "user",
+          "content": "Please give me information about Michael Jordan."
+        }
+      ],
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "AnswerFormat",
+          "schema": {
+            "properties": {
+              "first_name": {
+                "title": "First Name",
+                "type": "string"
+              },
+              "last_name": {
+                "title": "Last Name",
+                "type": "string"
+              },
+              "year_of_birth": {
+                "title": "Year Of Birth",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "first_name",
+              "last_name",
+              "year_of_birth"
+            ],
+            "title": "AnswerFormat",
+            "type": "object"
+          }
+        }
+      },
+      "stream": false
+    },
+    "endpoint": "/v1/chat/completions",
+    "model": "qwen3-0.6b",
+    "provider_metadata": {
+      "openai_sdk_version": "2.43.0"
+    }
+  },
+  "response": {
+    "body": {
+      "__type__": "openai.types.chat.chat_completion.ChatCompletion",
+      "__data__": {
+        "id": "rec-b625bd08ce63",
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "content": "{ \"first_name\": \"Michael\", \"last_name\": \"Jordan\",\"year_of_birth\": 1963 }",
+              "refusal": null,
+              "role": "assistant",
+              "annotations": null,
+              "audio": null,
+              "function_call": null,
+              "tool_calls": null,
+              "reasoning_content": "Okay, the user is asking for information about Michael Jordan. Let me start by recalling the key points. He was born in 1963, so that's one fact. He played for the Chicago Bulls for 15 seasons, which is another important detail. The user might be interested in his career highlights, like his NBA stats or achievements. I should mention that he was drafted in 1984, which is a significant moment in his career. Also, his impact on the game, like his scoring, leadership, and championships. Maybe include some quotes from his teammates or fans. Need to make sure the information is accurate and structured clearly. Let me check if there are any other facts I might be missing, like his Olympic achievements or other sports contributions. But the user specifically asked for basketball, so stick to that. Keep it concise but informative.\n"
+            }
+          }
+        ],
+        "created": 0,
+        "model": "qwen3-0.6b",
+        "object": "chat.completion",
+        "moderation": null,
+        "service_tier": null,
+        "system_fingerprint": "b10964-b29c606e2",
+        "usage": {
+          "completion_tokens": 212,
+          "prompt_tokens": 66,
+          "total_tokens": 278,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": {
+            "audio_tokens": null,
+            "cached_tokens": 0
+          }
+        },
+        "timings": {
+          "cache_n": 0,
+          "prompt_n": 66,
+          "prompt_ms": 472.497,
+          "prompt_per_token_ms": 7.1590454545454545,
+          "prompt_per_second": 139.6834265614385,
+          "predicted_n": 212,
+          "predicted_ms": 5807.673,
+          "predicted_per_token_ms": 27.524516587677724,
+          "predicted_per_second": 36.33124661116423
+        }
+      }
+    },
+    "is_streaming": false
+  },
+  "id_normalization_mapping": {}
+}

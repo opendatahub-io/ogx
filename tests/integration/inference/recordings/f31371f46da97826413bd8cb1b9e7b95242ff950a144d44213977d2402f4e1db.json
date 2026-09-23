@@ -1,0 +1,81 @@
+{
+  "test_id": "tests/integration/inference/test_openai_completion.py::test_openai_chat_completion_with_tool_choice_none[txt=llama-cpp-server/qwen3-0.6b-inference:chat_completion:tool_calling]",
+  "request": {
+    "method": "POST",
+    "url": "http://localhost:8080/v1/v1/chat/completions",
+    "headers": {},
+    "body": {
+      "model": "qwen3-0.6b",
+      "messages": [
+        {
+          "role": "system",
+          "content": "Pretend you are a weather assistant."
+        },
+        {
+          "role": "user",
+          "content": "What's the weather like in San Francisco, CA?"
+        }
+      ],
+      "stream": false
+    },
+    "endpoint": "/v1/chat/completions",
+    "model": "qwen3-0.6b",
+    "provider_metadata": {
+      "openai_sdk_version": "2.43.0"
+    }
+  },
+  "response": {
+    "body": {
+      "__type__": "openai.types.chat.chat_completion.ChatCompletion",
+      "__data__": {
+        "id": "rec-f31371f46da9",
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "content": "The weather in San Francisco, CA, can vary significantly depending on the season. Here\u2019s a quick overview:\n\n- **Sunny and mild** in spring (May\u2013August), with temperatures typically ranging from **60\u00b0F to 85\u00b0F**.\n- **Colder** in summer (August\u2013September), with temperatures dropping to around **50\u00b0F to 70\u00b0F**.\n- **Stormy** in late fall (October\u2013November) and winter (December), with possible rain or snow.\n\nFor the most accurate and up-to-date information, check a reliable weather service like Weather.com, AccuWeather, or your local meteorological office. Let me know if you need further assistance!",
+              "refusal": null,
+              "role": "assistant",
+              "annotations": null,
+              "audio": null,
+              "function_call": null,
+              "tool_calls": null,
+              "reasoning_content": "Okay, the user is asking about the weather in San Francisco, CA. As a weather assistant, I need to provide accurate information. Let me think. San Francisco is a city in California, so the weather can vary a lot depending on the season and location.\n\nFirst, I should mention that the weather here can be sunny or cloudy, with temperatures ranging from around 70\u00b0F to 90\u00b0F. It's important to note that the weather might be influenced by factors like the season, which could be mild in spring, cooler in summer, and more variable in other times of the year. Also, I should check if there are any recent updates or changes that might affect the forecast. \n\nI should make sure to provide clear and concise information, maybe suggest checking the latest weather sources for the most current data. It's good to mention that the weather can change quickly, so advising users to rely on reliable sources is important. Let me structure the response to cover key points and offer assistance in case they need further details.\n"
+            }
+          }
+        ],
+        "created": 0,
+        "model": "qwen3-0.6b",
+        "object": "chat.completion",
+        "moderation": null,
+        "service_tier": null,
+        "system_fingerprint": "b10964-b29c606e2",
+        "usage": {
+          "completion_tokens": 355,
+          "prompt_tokens": 33,
+          "total_tokens": 388,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": {
+            "audio_tokens": null,
+            "cached_tokens": 11
+          }
+        },
+        "timings": {
+          "cache_n": 11,
+          "prompt_n": 22,
+          "prompt_ms": 169.723,
+          "prompt_per_token_ms": 7.714681818181819,
+          "prompt_per_second": 129.62297390453855,
+          "predicted_n": 355,
+          "predicted_ms": 9899.119,
+          "predicted_per_token_ms": 27.963612994350285,
+          "predicted_per_second": 35.760758103827214
+        }
+      }
+    },
+    "is_streaming": false
+  },
+  "id_normalization_mapping": {}
+}

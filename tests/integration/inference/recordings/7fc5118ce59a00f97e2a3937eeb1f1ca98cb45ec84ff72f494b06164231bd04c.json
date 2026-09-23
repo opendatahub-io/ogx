@@ -1,0 +1,142 @@
+{
+  "test_id": "tests/integration/inference/test_tools_with_schemas.py::TestEdgeCases::test_multiple_tools_with_different_schemas[txt=llama-cpp-server/qwen3-0.6b]",
+  "request": {
+    "method": "POST",
+    "url": "http://localhost:8080/v1/v1/chat/completions",
+    "headers": {},
+    "body": {
+      "model": "qwen3-0.6b",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Use one of the available tools"
+        }
+      ],
+      "tools": [
+        {
+          "type": "function",
+          "function": {
+            "name": "simple",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "x": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "complex",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "$ref": "#/$defs/Complex"
+                }
+              },
+              "$defs": {
+                "Complex": {
+                  "type": "object",
+                  "properties": {
+                    "nested": {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "with_output",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "input": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "endpoint": "/v1/chat/completions",
+    "model": "qwen3-0.6b",
+    "provider_metadata": {
+      "openai_sdk_version": "2.43.0"
+    }
+  },
+  "response": {
+    "body": {
+      "__type__": "openai.types.chat.chat_completion.ChatCompletion",
+      "__data__": {
+        "id": "rec-7fc5118ce59a",
+        "choices": [
+          {
+            "finish_reason": "tool_calls",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "content": "",
+              "refusal": null,
+              "role": "assistant",
+              "annotations": null,
+              "audio": null,
+              "function_call": null,
+              "tool_calls": [
+                {
+                  "id": "iozNUWKLnJWkrxY8seAw1gt40XIROHw6",
+                  "function": {
+                    "arguments": "{\"x\": \"\"}",
+                    "name": "simple"
+                  },
+                  "type": "function"
+                }
+              ],
+              "reasoning_content": "Okay, the user wants me to use one of the available tools. Let me look at the functions provided.\n\nFirst, there's the 'simple' function with a parameter 'x' of type string. Then 'complex' which requires an object with 'data' which is an array of numbers. And 'with_output' which takes an input string.\n\nThe user hasn't provided specific parameters yet. They just asked to use one of the tools. Since there's no actual query yet, maybe I should ask for more details. But wait, maybe I need to choose the right tool based on the context. The user might need to provide data for the 'complex' function. But since they haven't given any data, perhaps the 'simple' function is the best here? Or maybe the 'complex' function is needed if there's data to process. However, without any input, I can't proceed with 'complex'. The 'with_output' function requires an input, but there's no input provided. \n\nWait, the user's message is just a request to use one of the tools. Since the tools are empty except for the 'simple' and 'complex' functions, but without parameters, maybe the correct approach is to state that the tool is available but requires parameters. But the instructions say to use one of the tools. Since the user hasn't provided any specific data, perhaps I should respond that I can't use the tools without more information. However, the example in the tools shows that if there's no data, maybe the 'simple' function is used. Alternatively, maybe the user expects me to assume some data. But without knowing, I can't. So maybe the correct response is to state that the available tools require parameters but no data is provided. But the user's message is just to use the tools. Hmm. Maybe I should check if the 'simple' function can be called with an x parameter. But since there's no data, perhaps the 'simple' function is the way to go. Or maybe the 'complex' function. But since the parameters for 'complex' require an array of numbers, and there's no data given, maybe the 'simple' function is the only one available. \n\nWait, the user's query is just \"Use one of the available tools\". So perhaps the answer is to indicate that the tools are available but require parameters. But the assistant's task is to call one of the functions if possible. Since the user hasn't provided any data, maybe the assistant should respond that they can't proceed without more information. However, the example in the tools shows that when no parameters are given, maybe the 'simple' function is called. But the parameters for 'simple' are just 'x'. So perhaps the correct approach is to call 'simple' with an empty string as the argument. But the parameters for 'simple' are 'x' which is a string. So maybe the tool call would be {\"name\": \"simple\", \"arguments\": {\"x\": \"\"}}. But the user might not have provided any data, so this is an assumption. Alternatively, perhaps the user expects me to use the 'complex' function. But without data, that's not possible. So the answer is to call 'simple' with an empty argument. That's the best I can do.\n"
+            }
+          }
+        ],
+        "created": 0,
+        "model": "qwen3-0.6b",
+        "object": "chat.completion",
+        "moderation": null,
+        "service_tier": null,
+        "system_fingerprint": "b10964-b29c606e2",
+        "usage": {
+          "completion_tokens": 698,
+          "prompt_tokens": 262,
+          "total_tokens": 960,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": {
+            "audio_tokens": null,
+            "cached_tokens": 51
+          }
+        },
+        "timings": {
+          "cache_n": 51,
+          "prompt_n": 211,
+          "prompt_ms": 1505.757,
+          "prompt_per_token_ms": 7.136289099526067,
+          "prompt_per_second": 140.12885213218334,
+          "predicted_n": 698,
+          "predicted_ms": 23212.546,
+          "predicted_per_token_ms": 33.30350932568149,
+          "predicted_per_second": 30.026865644121937
+        }
+      }
+    },
+    "is_streaming": false
+  },
+  "id_normalization_mapping": {}
+}

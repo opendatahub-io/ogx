@@ -1,0 +1,77 @@
+{
+  "test_id": "tests/integration/inference/test_openai_completion.py::test_openai_chat_completion_non_streaming[client_with_models-txt=llama-cpp-server/qwen3-0.6b-inference:chat_completion:non_streaming_01]",
+  "request": {
+    "method": "POST",
+    "url": "http://localhost:8080/v1/v1/chat/completions",
+    "headers": {},
+    "body": {
+      "model": "qwen3-0.6b",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Which planet do humans live on?"
+        }
+      ],
+      "stream": false
+    },
+    "endpoint": "/v1/chat/completions",
+    "model": "qwen3-0.6b",
+    "provider_metadata": {
+      "openai_sdk_version": "2.43.0"
+    }
+  },
+  "response": {
+    "body": {
+      "__type__": "openai.types.chat.chat_completion.ChatCompletion",
+      "__data__": {
+        "id": "rec-bddb7593de31",
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "content": "Humans live on **Earth**. We were created on this planet, and it has provided us with the atmosphere, water, and other essential resources that support life. Earth is our home, and we've been here for millions of years.",
+              "refusal": null,
+              "role": "assistant",
+              "annotations": null,
+              "audio": null,
+              "function_call": null,
+              "tool_calls": null,
+              "reasoning_content": "Okay, the user is asking which planet humans live on. Let me think. I know that humans live on Earth, but I should make sure that's correct. Earth is our home, and we've been there for a long time. The question might be a bit trickier because it's a common question that's been asked before. I need to confirm that Earth is indeed the planet where humans are born and that there's no other planet with a similar name. I should also explain that humans have adapted to Earth's environment over millions of years. Maybe mention the planet's unique features like the atmosphere, water, and terrain. But keep it simple and accurate.\n"
+            }
+          }
+        ],
+        "created": 0,
+        "model": "qwen3-0.6b",
+        "object": "chat.completion",
+        "moderation": null,
+        "service_tier": null,
+        "system_fingerprint": "b10964-b29c606e2",
+        "usage": {
+          "completion_tokens": 187,
+          "prompt_tokens": 15,
+          "total_tokens": 202,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": {
+            "audio_tokens": null,
+            "cached_tokens": 0
+          }
+        },
+        "timings": {
+          "cache_n": 0,
+          "prompt_n": 15,
+          "prompt_ms": 122.945,
+          "prompt_per_token_ms": 8.196333333333333,
+          "prompt_per_second": 122.00577494001384,
+          "predicted_n": 187,
+          "predicted_ms": 4915.042,
+          "predicted_per_token_ms": 26.424956989247313,
+          "predicted_per_second": 37.84301334556246
+        }
+      }
+    },
+    "is_streaming": false
+  },
+  "id_normalization_mapping": {}
+}
