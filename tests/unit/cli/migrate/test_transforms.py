@@ -128,7 +128,7 @@ class TestTransformResponse:
 
         result = transform_response(row, TenantDeriver(), OwnerSubjectDeriver("fallback-owner"))
 
-        assert result.messages == "[]"
+        assert result.messages == b"[]"
 
     def test_messages_copied_verbatim(self):
         messages = [{"role": "system", "content": "be nice"}, {"role": "user", "content": "hi"}]
@@ -144,6 +144,9 @@ class TestTransformResponse:
 
         result = transform_response(row, TenantDeriver(), OwnerSubjectDeriver("fallback-owner"))
 
+        assert isinstance(result.response_object, bytes)
+        assert isinstance(result.input, bytes)
+        assert isinstance(result.messages, bytes)
         assert json.loads(result.messages) == messages
 
     def test_scalar_fields_and_tenant(self):

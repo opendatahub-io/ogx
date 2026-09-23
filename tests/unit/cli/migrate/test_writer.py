@@ -107,8 +107,8 @@ class TestWriteBatch:
     async def test_write_batch_passes_rows_and_wraps_transaction(self):
         writer, fake = _writer_with_fake_conn()
         rows = [
-            ("resp_1", "t1", "owner", "urn:rhoai:ogx:production", 1, "m", "{}", "[]", "[]"),
-            ("resp_2", "t1", "owner", "urn:rhoai:ogx:production", 2, "m", "{}", "[]", "[]"),
+            ("resp_1", "t1", "owner", "urn:rhoai:ogx:production", 1, "m", b"{}", b"[]", b"[]"),
+            ("resp_2", "t1", "owner", "urn:rhoai:ogx:production", 2, "m", b"{}", b"[]", b"[]"),
         ]
 
         submitted = await writer.write_batch("responses", rows)
@@ -145,7 +145,7 @@ class TestIdempotencyIntegration:
         try:
             tenant_id = f"migration-test-{uuid.uuid4().hex}"
             response_id = f"resp-{uuid.uuid4().hex}"
-            row = (response_id, tenant_id, "owner", "urn:rhoai:ogx:production", 1, "gpt-4o", "{}", "[]", "[]")
+            row = (response_id, tenant_id, "owner", "urn:rhoai:ogx:production", 1, "gpt-4o", b"{}", b"[]", b"[]")
             await writer.write_batch("responses", [row])
             await writer.write_batch("responses", [row])  # ON CONFLICT DO NOTHING
             count = await writer._conn.fetchval(
