@@ -13,8 +13,9 @@ assertion test does, and compares them to the committed golden fixtures. This:
 * unit-tests the shared normalizer (:mod:`tests.integration.migration._compare`);
 * pins the golden fixtures the Postgres e2e asserts against, without needing
   Postgres/Praxis — the target rows are backend-independent (every JSON column is
-  re-serialized by the pure transforms and stored verbatim as TEXT), so a golden
-  generated here is faithful to a real Postgres+Praxis round-trip;
+  re-serialized by the pure transforms and stored verbatim as UTF-8 JSON bytes or
+  TEXT), so a golden generated here is faithful to a real Postgres+Praxis
+  round-trip;
 * keeps the seed dataset and the golden in lockstep — regenerate both with
   ``OGX_MIGRATION_UPDATE_GOLDEN=1 uv run pytest tests/unit/cli/migrate/test_golden.py``.
 
@@ -308,7 +309,7 @@ def _sample_batches():
 def test_normalizer_parses_json_columns_and_keys_by_pk():
     normalized = _compare.normalize_all(_sample_batches())
     assert set(normalized) == {"responses", "conversations", "items"}
-    # Responses are keyed by globally unique id; JSON-as-TEXT is parsed to structures.
+    # Responses are keyed by globally unique id; JSON payloads are parsed to structures.
     resp = normalized["responses"]["resp_1"]
     assert resp["response_object"] == {"id": "resp_1"}
     assert resp["input"] == []
@@ -317,6 +318,18 @@ def test_normalizer_parses_json_columns_and_keys_by_pk():
     assert resp["created_at"] == 111
     assert normalized["conversations"]["conv_1"]["metadata"] == {"k": "v"}
     assert normalized["items"]["item_1"]["item_data"] == {"type": "message"}
+
+
+def test_normalizer_decodes_response_bytea_columns():
+    batches = _sample_batches()
+    response = batches["responses"][0]
+    batches["responses"] = [(*response[:6], b'{"id":"resp_1"}', b"[]", b'[{"role":"user"}]')]
+
+    normalized = _compare.normalize_all(batches)
+
+    assert normalized["responses"]["resp_1"]["response_object"] == {"id": "resp_1"}
+    assert normalized["responses"]["resp_1"]["input"] == []
+    assert normalized["responses"]["resp_1"]["messages"] == [{"role": "user"}]
 
 
 def test_normalizer_is_order_independent():

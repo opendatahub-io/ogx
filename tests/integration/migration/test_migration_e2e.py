@@ -17,8 +17,8 @@ test_golden.py``) cannot, even though both compare against the *same*
 golden:
 
 * the asyncpg ``INSERT ... ON CONFLICT DO NOTHING`` write leg actually executes;
-* Postgres type coercion round-trips (BIGINT ``created_at``/``position``, JSON
-  stored as ``TEXT``) instead of SQLite's looser typing;
+* Postgres type coercion round-trips (BIGINT ``created_at``/``position`` and
+  response payloads stored as ``BYTEA``) instead of SQLite's looser typing;
 * the target tables exist with the DDL/PK contract **Praxis** stamped (not a
   schema the test authored), so table-name or column drift between OGX's writer
   and Praxis's schema surfaces here.
@@ -89,8 +89,8 @@ async def test_praxis_global_primary_keys_skip_cross_tenant_duplicate_ids(praxis
         await writer.write_batch(
             "responses",
             [
-                (response_id, "tenant-a", "owner-a", "urn:rhoai:ogx:production", 1, "gpt-4o", "{}", "[]", "[]"),
-                (response_id, "tenant-b", "owner-b", "urn:rhoai:ogx:production", 2, "gpt-4o", "{}", "[]", "[]"),
+                (response_id, "tenant-a", "owner-a", "urn:rhoai:ogx:production", 1, "gpt-4o", b"{}", b"[]", b"[]"),
+                (response_id, "tenant-b", "owner-b", "urn:rhoai:ogx:production", 2, "gpt-4o", b"{}", b"[]", b"[]"),
             ],
         )
         await writer.write_batch(

@@ -11,11 +11,11 @@ from both the in-process golden-guard unit test and the Postgres assertion test.
 
 The migration's target rows are deterministic regardless of source backend: every
 JSON column is re-serialized by the pure transforms in ``target.py``
-(``model_dump_json`` / ``json.dumps``), and Praxis stores them verbatim as
-``TEXT``. So a golden fixture generated in-process against SQLite is byte-faithful
-to the rows a real Postgres+Praxis round-trip produces — the normalizer parses the
-JSON-as-TEXT columns back into structures and compares them order-independently,
-so even JSON key-ordering differences between backends are irrelevant.
+(``model_dump_json`` / ``json.dumps``), and Praxis stores response payloads as
+raw UTF-8 ``BYTEA`` and the remaining JSON columns as ``TEXT``. The normalizer
+decodes and parses both representations back into structures and compares them
+order-independently, so even JSON key-ordering differences between backends are
+irrelevant.
 
 Two producers feed the same normalizer:
   * the in-process pipeline yields ``PraxisRow.as_row()`` positional tuples;
@@ -67,7 +67,7 @@ TARGET_COLUMNS: dict[str, tuple[str, ...]] = {
     ),
 }
 
-# Columns stored as JSON-in-TEXT by Praxis; parsed back to structures before compare.
+# Columns stored as JSON by Praxis; parsed back to structures before compare.
 JSON_COLUMNS: dict[str, tuple[str, ...]] = {
     "responses": ("response_object", "input", "messages"),
     "conversations": ("metadata", "messages"),
@@ -100,6 +100,8 @@ def _row_to_mapping(kind: str, row: Sequence[Any] | Mapping[str, Any]) -> dict[s
 def _parse_json_columns(kind: str, record: dict[str, Any]) -> dict[str, Any]:
     for col in JSON_COLUMNS[kind]:
         value = record[col]
+        if isinstance(value, bytes):
+            value = value.decode("utf-8")
         if isinstance(value, str):
             record[col] = json.loads(value)
     return record
