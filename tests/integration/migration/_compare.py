@@ -74,12 +74,13 @@ JSON_COLUMNS: dict[str, tuple[str, ...]] = {
     "items": ("item_data",),
 }
 
-# Natural primary key per table (matches the Praxis PKs in schemas.rs). Used to
-# index rows so comparison is order-independent and mismatches point at a row.
+# Natural primary key per table (matches the globally unique Praxis PKs in
+# schemas.rs). Used to index rows so comparison is order-independent and
+# mismatches point at a row.
 PK_COLUMNS: dict[str, tuple[str, ...]] = {
-    "responses": ("tenant_id", "id"),
-    "conversations": ("conversation_id", "tenant_id"),
-    "items": ("item_id", "tenant_id", "conversation_id"),
+    "responses": ("id",),
+    "conversations": ("conversation_id",),
+    "items": ("item_id",),
 }
 
 KINDS: tuple[str, ...] = ("responses", "conversations", "items")

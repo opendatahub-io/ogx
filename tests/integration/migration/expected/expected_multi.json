@@ -1,6 +1,6 @@
 {
   "conversations": {
-    "conv_empty_owner\u0000default": {
+    "conv_empty_owner": {
       "conversation_id": "conv_empty_owner",
       "created_at": 300,
       "messages": [],
@@ -9,7 +9,7 @@
       "owner_subject": "fallback-owner",
       "tenant_id": "default"
     },
-    "conv_joined\u0000team-a": {
+    "conv_joined": {
       "conversation_id": "conv_joined",
       "created_at": 100,
       "messages": [
@@ -26,7 +26,7 @@
       "owner_subject": "acme",
       "tenant_id": "team-a"
     },
-    "conv_legacy\u0000team-b": {
+    "conv_legacy": {
       "conversation_id": "conv_legacy",
       "created_at": 200,
       "messages": [],
@@ -35,7 +35,7 @@
       "owner_subject": "fallback-owner",
       "tenant_id": "team-b"
     },
-    "conv_orphan\u0000default": {
+    "conv_orphan": {
       "conversation_id": "conv_orphan",
       "created_at": 999,
       "messages": [
@@ -52,7 +52,7 @@
     }
   },
   "items": {
-    "item_1\u0000team-a\u0000conv_joined": {
+    "item_1": {
       "conversation_id": "conv_joined",
       "created_at": 100,
       "item_data": {
@@ -65,7 +65,7 @@
       "position": 0,
       "tenant_id": "team-a"
     },
-    "item_legacy\u0000team-b\u0000conv_legacy": {
+    "item_legacy": {
       "conversation_id": "conv_legacy",
       "created_at": 200,
       "item_data": {
@@ -79,7 +79,7 @@
       "position": 0,
       "tenant_id": "team-b"
     },
-    "item_null_sort\u0000team-a\u0000conv_joined": {
+    "item_null_sort": {
       "conversation_id": "conv_joined",
       "created_at": 105,
       "item_data": {
@@ -94,7 +94,7 @@
     }
   },
   "responses": {
-    "default\u0000resp_1": {
+    "resp_1": {
       "created_at": 111,
       "id": "resp_1",
       "input": [
