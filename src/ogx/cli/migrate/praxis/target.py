@@ -182,9 +182,9 @@ class PraxisResponseRow:
     id: str
     created_at: int
     model: str
-    response_object: str
-    input: str
-    messages: str
+    response_object: bytes
+    input: bytes
+    messages: bytes
 
     def as_row(self) -> tuple[Any, ...]:
         """Positional tuple matching the responses INSERT column order."""
@@ -368,9 +368,9 @@ def transform_response(
         id=row["id"],
         created_at=int(row["created_at"]),
         model=row["model"],
-        response_object=public.model_dump_json(),
-        input=json.dumps(blob.get("input", [])),
-        messages=json.dumps(blob.get("messages") or []),
+        response_object=public.model_dump_json().encode("utf-8"),
+        input=json.dumps(blob.get("input", [])).encode("utf-8"),
+        messages=json.dumps(blob.get("messages") or []).encode("utf-8"),
         owner_issuer=owner_issuer,
     )
 
@@ -490,9 +490,9 @@ def transform_legacy_inline_item(
 
 # INSERT ... ON CONFLICT DO NOTHING statements keyed by logical table. Conflict
 # targets equal Praxis's globally unique primary keys (verified against
-# schemas.rs). Praxis stores JSON columns as TEXT holding serde_json strings, so
-# binding Python str is the exact contract. {t} is the validated physical table
-# name.
+# schemas.rs). Response payloads are BYTEA and are bound as raw UTF-8 bytes;
+# the remaining JSON columns are TEXT holding serde_json strings. {t} is the
+# validated physical table name.
 _INSERT_SQL: dict[str, str] = {
     "responses": (
         "INSERT INTO {t} (id, tenant_id, owner_subject, owner_issuer, created_at, model, response_object, input, messages) "
