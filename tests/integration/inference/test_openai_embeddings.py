@@ -148,8 +148,10 @@ def skip_if_model_doesnt_support_openai_embeddings(client, model_id):
 
 @pytest.fixture
 def openai_client(client_with_models):
+    from ogx.testing.api_recorder import build_test_id_http_client
+
     base_url = f"{client_with_models.base_url}/v1"
-    return OpenAI(base_url=base_url, api_key="fake")
+    return OpenAI(base_url=base_url, api_key="fake", http_client=build_test_id_http_client())
 
 
 def test_openai_embeddings_single_string(compat_client, client_with_models, embedding_model_id):

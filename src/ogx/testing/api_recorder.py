@@ -17,7 +17,8 @@ from pathlib import Path
 from typing import Any, Literal, cast
 from urllib.parse import urlparse
 
-from openai import NOT_GIVEN, OpenAI
+import httpx
+from openai import NOT_GIVEN
 
 from ogx.core.id_generation import reset_id_override, set_id_override
 from ogx.log import get_logger
@@ -34,8 +35,13 @@ _current_storage: ResponseStorage | None = None
 _original_methods: dict[str, Any] = {}
 
 # Deliberately not in _original_methods: patch_inference_clients() reassigns that dict and
-# unpatch_inference_clients() clears it, while the _prepare_request patches are installed
-# once per process and never removed.
+# unpatch_inference_clients() clears it, while the _prepare_request patch is installed
+# once per process and never removed. Only OgxClient is patched here -- it is our own
+# generated client, which calls self._prepare_request(request) as a documented extension
+# point (see client-sdks/openapi/templates/python/ogx_client.mustache). openai.OpenAI /
+# AsyncOpenAI clients get test-ID injection through build_test_id_http_client() /
+# build_test_id_async_http_client() instead, since their own _prepare_request is a private,
+# semver-exempt implementation detail (see #6627).
 _prepare_request_originals: dict[type, Callable[..., None]] = {}
 
 # Per-test deterministic ID counters (test_id -> id_kind -> counter)
@@ -308,15 +314,76 @@ def normalize_http_request(url: str, method: str, payload: dict[str, Any]) -> st
     return request_hash
 
 
+def _inject_test_id(request: httpx.Request) -> None:
+    """Stamp the current test's ID into the request's provider-data header, in server mode.
+
+    This is needed for server mode where the test ID must be transported from client to
+    server via HTTP headers, so the server can key recordings/replay and per-test state
+    (see ogx.core.testing_context.sync_test_context_from_provider_data). In library_client
+    mode this is a no-op since everything runs in the same process. No-op outside an active
+    test context too (test_id is None), so this is safe to install unconditionally.
+    """
+    stack_config_type = os.environ.get("OGX_TEST_STACK_CONFIG_TYPE", "library_client")
+    test_id = get_test_context()
+
+    if stack_config_type != "server" or not test_id:
+        return
+
+    provider_data_header = request.headers.get("X-OGX-Provider-Data")
+    provider_data = json.loads(provider_data_header) if provider_data_header else {}
+    provider_data["__test_id"] = test_id
+    request.headers["X-OGX-Provider-Data"] = json.dumps(provider_data)
+
+    if is_debug_mode():
+        logger.info("[RECORDING DEBUG] Injected test ID into request header:")
+        logger.info(f"  Test ID: {test_id}")
+        logger.info(f"  URL: {request.url}")
+
+
+async def _inject_test_id_async(request: httpx.Request) -> None:
+    # httpx.AsyncClient requires its event hooks to be coroutine functions, but the
+    # injection logic itself is plain sync header mutation -- no I/O to await.
+    _inject_test_id(request)
+
+
+def build_test_id_http_client(**kwargs: Any) -> httpx.Client:
+    """Build an httpx.Client that stamps the current test's ID onto every outgoing request.
+
+    Pass as ``http_client=`` to any client that accepts a custom httpx.Client (openai.OpenAI,
+    langchain's ChatOpenAI's `http_client`, etc.) instead of relying on that SDK's own request
+    hook, which may be a private implementation detail. Uses httpx's own public, documented
+    event_hooks mechanism (https://www.python-httpx.org/advanced/event-hooks/), so it covers
+    any client built on httpx -- including ones openai.OpenAI wraps under a differently-named
+    but structurally-compatible httpx fork (see src/ogx/testing/providers/openai.py).
+
+    Any keyword arguments accepted by httpx.Client() may be passed through, e.g. to combine
+    with a caller's own event_hooks.
+    """
+    event_hooks = dict(kwargs.pop("event_hooks", None) or {})
+    event_hooks["request"] = [*event_hooks.get("request", []), _inject_test_id]
+    return httpx.Client(event_hooks=event_hooks, **kwargs)
+
+
+def build_test_id_async_http_client(**kwargs: Any) -> httpx.AsyncClient:
+    """Async counterpart of build_test_id_http_client(); pass as ``http_client=`` to
+    openai.AsyncOpenAI, or as ``http_async_client=`` to langchain's ChatOpenAI."""
+    event_hooks = dict(kwargs.pop("event_hooks", None) or {})
+    event_hooks["request"] = [*event_hooks.get("request", []), _inject_test_id_async]
+    return httpx.AsyncClient(event_hooks=event_hooks, **kwargs)
+
+
 def patch_httpx_for_test_id():
-    """Patch client _prepare_request methods to inject test ID into provider data header.
+    """Patch OgxClient._prepare_request to inject the current test's ID into requests.
 
     This is needed for server mode where the test ID must be transported from
-    client to server via HTTP headers. In library_client mode, this patch is a no-op
+    client to server via HTTP headers. In library_client mode this patch is a no-op
     since everything runs in the same process.
 
-    We use the _prepare_request hook the client provides for mutating
-    requests after construction but before sending.
+    OgxClient._prepare_request is our own generated client's documented hook for mutating
+    requests after construction but before sending (not a private SDK internal). openai.OpenAI
+    / AsyncOpenAI clients are not patched here -- construct them with
+    http_client=build_test_id_http_client() (or build_test_id_async_http_client() for the
+    async client / langchain's ChatOpenAI) instead.
     """
     try:
         from ogx_client import OgxClient
@@ -326,42 +393,15 @@ def patch_httpx_for_test_id():
     if _prepare_request_originals:
         return
 
-    def inject_test_id(request):
-        # Only inject test ID in server mode
-        stack_config_type = os.environ.get("OGX_TEST_STACK_CONFIG_TYPE", "library_client")
-        test_id = get_test_context()
+    original = OgxClient._prepare_request
 
-        if stack_config_type == "server" and test_id:
-            provider_data_header = request.headers.get("X-OGX-Provider-Data")
+    def patched_prepare_request(self, request):
+        original(self, request)
+        _inject_test_id(request)
+        return None
 
-            if provider_data_header:
-                provider_data = json.loads(provider_data_header)
-            else:
-                provider_data = {}
-
-            provider_data["__test_id"] = test_id
-            request.headers["X-OGX-Provider-Data"] = json.dumps(provider_data)
-
-            if is_debug_mode():
-                logger.info("[RECORDING DEBUG] Injected test ID into request header:")
-                logger.info(f"  Test ID: {test_id}")
-                logger.info(f"  URL: {request.url}")
-
-    def make_patched_prepare_request(original):
-        def patched_prepare_request(self, request):
-            # Call only the original of the class being patched (it's a sync method that
-            # returns None). The two originals are not interchangeable: since openai
-            # 2.44.0, OpenAI._prepare_request dereferences self._provider_runtime, an
-            # attribute only openai's own __init__ sets.
-            original(self, request)
-            inject_test_id(request)
-            return None
-
-        return patched_prepare_request
-
-    for client_class in (OgxClient, OpenAI):
-        _prepare_request_originals[client_class] = client_class._prepare_request
-        client_class._prepare_request = make_patched_prepare_request(client_class._prepare_request)
+    _prepare_request_originals[OgxClient] = original
+    OgxClient._prepare_request = patched_prepare_request
 
 
 def get_api_recording_mode() -> APIRecordingMode:

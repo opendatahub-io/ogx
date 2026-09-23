@@ -15,6 +15,7 @@ inference/
   stream_utils.py      # Streaming response helpers
   inference_store.py   # InferenceStore for persisting chat completion logs
   http_client.py       # HTTP client utilities
+  models_dev_registry.py # Shared classify_model() for embedding/rerank model classification
 ```
 
 ## OpenAIMixin (`openai_mixin.py`)
@@ -47,3 +48,7 @@ Handles format conversion between OGX's message types and provider-specific form
 ## InferenceStore (`inference_store.py`)
 
 Persists chat completion request/response pairs to the SqlStore. Used by the inference router to enable conversation history retrieval via the Conversations API.
+
+## Model classification (`models_dev_registry.py`)
+
+`classify_model(identifier, provider_id)` classifies embedding and rerank models for remote adapters whose `/v1/models` response has no model task/type field (vLLM, llama.cpp servers), returning `None` when `identifier` is neither so callers can fall back to their own default classification. Only embedding classification consults the [models.dev](https://models.dev) registry, enriching `Model.metadata` with `embedding_dimension`/`context_length` when it has an entry, and falling back to a name heuristic (`"embed"` in the identifier) otherwise; models.dev has no rerank entries, so rerank classification is a name heuristic (`"rerank"` in the identifier) only.
