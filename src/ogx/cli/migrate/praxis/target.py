@@ -174,7 +174,7 @@ class OwnerSubjectDeriver:
 
 @dataclass(frozen=True)
 class PraxisResponseRow:
-    """A target row for the Praxis ``responses`` table (PK ``(tenant_id, id)``)."""
+    """A target row for the Praxis ``responses`` table (PK ``id``)."""
 
     tenant_id: str
     owner_subject: str
@@ -203,7 +203,7 @@ class PraxisResponseRow:
 
 @dataclass(frozen=True)
 class PraxisConversationRow:
-    """A target row for the Praxis ``conversations`` table (PK ``(conversation_id, tenant_id)``)."""
+    """A target row for the Praxis ``conversations`` table (PK ``conversation_id``)."""
 
     conversation_id: str
     tenant_id: str
@@ -228,7 +228,7 @@ class PraxisConversationRow:
 
 @dataclass(frozen=True)
 class PraxisItemRow:
-    """A target row for the Praxis ``items`` table (PK ``(item_id, tenant_id, conversation_id)``)."""
+    """A target row for the Praxis ``items`` table (PK ``item_id``)."""
 
     item_id: str
     tenant_id: str
@@ -267,7 +267,7 @@ class ItemPositionAllocator:
     """Normalize item positions without changing their source ordering.
 
     Items are collected across both OGX storage representations before any are
-    allocated. Within each tenant/conversation they are ordered by source
+    allocated. Within each conversation they are ordered by source
     position and item id, then shifted upward only when required for Praxis's
     unique-position constraint. Deferring allocation is necessary because the
     source table is paged by item id rather than position: allocating online can
@@ -300,9 +300,9 @@ class ItemPositionAllocator:
         if self._assigned is not None:
             return
 
-        grouped: dict[tuple[str, str], list[_PendingItemPosition]] = {}
+        grouped: dict[str, list[_PendingItemPosition]] = {}
         for entry in self._pending:
-            grouped.setdefault((entry.tenant_id, entry.conversation_id), []).append(entry)
+            grouped.setdefault(entry.conversation_id, []).append(entry)
 
         assigned: dict[tuple[str, str, str, str, int], deque[int]] = {}
         for pending in grouped.values():
@@ -489,21 +489,26 @@ def transform_legacy_inline_item(
 
 
 # INSERT ... ON CONFLICT DO NOTHING statements keyed by logical table. Conflict
-# targets equal Praxis's primary keys (verified against schemas.rs). Praxis
-# stores JSON columns as TEXT holding serde_json strings, so binding Python str
-# is the exact contract. {t} is the validated physical table name.
+# targets equal Praxis's globally unique primary keys (verified against
+# schemas.rs). Praxis stores JSON columns as TEXT holding serde_json strings, so
+# binding Python str is the exact contract. {t} is the validated physical table
+# name.
 _INSERT_SQL: dict[str, str] = {
     "responses": (
         "INSERT INTO {t} (id, tenant_id, owner_subject, owner_issuer, created_at, model, response_object, input, messages) "
-        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT (tenant_id, id) DO NOTHING"
+        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT (id) DO NOTHING"
     ),
     "conversations": (
         "INSERT INTO {t} (conversation_id, tenant_id, owner_subject, owner_issuer, created_at, metadata, messages) "
-        "VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (conversation_id, tenant_id) DO NOTHING"
+        "VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (conversation_id) DO NOTHING"
     ),
     "items": (
         "INSERT INTO {t} (item_id, tenant_id, owner_subject, owner_issuer, conversation_id, item_data, created_at, position) "
-        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (item_id, tenant_id, conversation_id) DO NOTHING"
+        "SELECT $1, $2, $3, $4, $5, $6, $7, $8 "
+        "WHERE NOT EXISTS ("
+        "SELECT 1 FROM {c} AS parent "
+        "WHERE parent.conversation_id = $5 AND parent.tenant_id IS DISTINCT FROM $2"
+        ") ON CONFLICT (item_id) DO NOTHING"
     ),
 }
 
@@ -515,7 +520,8 @@ class PraxisWriter:
     Idempotency/resumability rests solely on ``ON CONFLICT DO NOTHING`` against
     the natural primary key: a restarted Job re-reads the source and skips
     already-written rows, crash-safe at any point and safe to re-run, with zero
-    footprint in the target.
+    footprint in the target. Item inserts additionally reject a child when its
+    target conversation already belongs to another tenant.
     """
 
     def __init__(self, dsn: str, tables: Mapping[str, str]) -> None:
@@ -541,7 +547,9 @@ class PraxisWriter:
             raise ValueError(f"Failed to build SQL for unknown target table {kind!r}")
         if kind not in self.tables:
             raise ValueError(f"Failed to build SQL: no physical table name configured for {kind!r}")
-        return _INSERT_SQL[kind].format(t=self.tables[kind])
+        if kind == "items" and "conversations" not in self.tables:
+            raise ValueError("Failed to build SQL: items require a physical conversations table name")
+        return _INSERT_SQL[kind].format(t=self.tables[kind], c=self.tables.get("conversations", ""))
 
     async def write_batch(self, kind: str, rows: Sequence[tuple[Any, ...]]) -> int:
         """Write a batch of positional tuples in a single transaction.

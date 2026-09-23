@@ -325,6 +325,19 @@ class TestTransformItem:
 
 
 class TestItemPositionAllocator:
+    def test_collision_across_tenants_shares_conversation_position_scope(self) -> None:
+        allocator = ItemPositionAllocator()
+        issuer = "urn:rhoai:ogx:production"
+        first = PraxisItemRow("item_a", "tenant_a", "owner_a", issuer, "conv_1", "{}", 100, 0)
+        cross_tenant = PraxisItemRow("item_b", "tenant_b", "owner_b", issuer, "conv_1", "{}", 101, 0)
+
+        allocator.observe("items", first)
+        allocator.observe("items", cross_tenant)
+        allocator.finalize()
+
+        assert allocator.allocate("items", first).position == 0
+        assert allocator.allocate("items", cross_tenant).position == 1
+
     def test_collision_preserves_source_position_order(self) -> None:
         allocator = ItemPositionAllocator()
         issuer = "urn:rhoai:ogx:production"

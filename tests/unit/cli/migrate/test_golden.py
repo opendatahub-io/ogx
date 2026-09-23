@@ -84,7 +84,7 @@ class _CapturingWriter(PraxisWriter):
             },
         )
         self.batches: dict[str, list[tuple]] = {}
-        self._item_primary_keys: set[tuple] = set()
+        self._primary_keys: dict[str, set[str]] = {}
         self._item_positions: set[tuple] = set()
 
     async def connect(self) -> None:  # pragma: no cover - not used
@@ -96,23 +96,32 @@ class _CapturingWriter(PraxisWriter):
     async def write_batch(self, kind: str, rows: Sequence[tuple[Any, ...]]) -> int:
         if kind == "items":
             pending_rows = []
-            pending_primary_keys: set[tuple] = set()
+            pending_primary_keys: set[str] = set()
             pending_positions: set[tuple] = set()
             for row in rows:
-                primary_key = (row[0], row[1], row[4])
-                if primary_key in self._item_primary_keys or primary_key in pending_primary_keys:
-                    continue  # Matches ON CONFLICT (item_id, tenant_id, conversation_id) DO NOTHING.
-                position_key = (row[1], row[4], row[7])
+                primary_key = row[0]
+                if primary_key in self._primary_keys.get(kind, set()) or primary_key in pending_primary_keys:
+                    continue  # Matches ON CONFLICT (item_id) DO NOTHING.
+                position_key = (row[4], row[7])
                 if position_key in self._item_positions or position_key in pending_positions:
                     raise ValueError(f"duplicate Praxis item position: {position_key!r}")
                 pending_rows.append(row)
                 pending_primary_keys.add(primary_key)
                 pending_positions.add(position_key)
-            self._item_primary_keys.update(pending_primary_keys)
+            self._primary_keys.setdefault(kind, set()).update(pending_primary_keys)
             self._item_positions.update(pending_positions)
             self.batches.setdefault(kind, []).extend(pending_rows)
         else:
-            self.batches.setdefault(kind, []).extend(rows)
+            pending_rows = []
+            pending_primary_keys: set[str] = set()
+            for row in rows:
+                primary_key = row[0]
+                if primary_key in self._primary_keys.get(kind, set()) or primary_key in pending_primary_keys:
+                    continue  # Matches the table's single-column primary key.
+                pending_rows.append(row)
+                pending_primary_keys.add(primary_key)
+            self._primary_keys.setdefault(kind, set()).update(pending_primary_keys)
+            self.batches.setdefault(kind, []).extend(pending_rows)
         return len(rows)
 
 
@@ -299,15 +308,15 @@ def _sample_batches():
 def test_normalizer_parses_json_columns_and_keys_by_pk():
     normalized = _compare.normalize_all(_sample_batches())
     assert set(normalized) == {"responses", "conversations", "items"}
-    # responses keyed by (tenant_id, id); JSON-as-TEXT parsed to structures.
-    resp = normalized["responses"]["default\x00resp_1"]
+    # Responses are keyed by globally unique id; JSON-as-TEXT is parsed to structures.
+    resp = normalized["responses"]["resp_1"]
     assert resp["response_object"] == {"id": "resp_1"}
     assert resp["input"] == []
     assert resp["messages"] == [{"role": "user"}]
     assert resp["owner_issuer"] == "urn:rhoai:ogx:production"
     assert resp["created_at"] == 111
-    assert normalized["conversations"]["conv_1\x00acme"]["metadata"] == {"k": "v"}
-    assert normalized["items"]["item_1\x00acme\x00conv_1"]["item_data"] == {"type": "message"}
+    assert normalized["conversations"]["conv_1"]["metadata"] == {"k": "v"}
+    assert normalized["items"]["item_1"]["item_data"] == {"type": "message"}
 
 
 def test_normalizer_is_order_independent():
@@ -324,8 +333,8 @@ def test_normalizer_rejects_duplicate_primary_key():
     issuer = "urn:rhoai:ogx:production"
     dup = {
         "items": [
-            ("i", "t", "owner", issuer, "c", "{}", 0, 0),
-            ("i", "t", "owner", issuer, "c", "{}", 9, 9),
+            ("i", "tenant_a", "owner", issuer, "conversation_a", "{}", 0, 0),
+            ("i", "tenant_b", "owner", issuer, "conversation_b", "{}", 9, 0),
         ]
     }
     with pytest.raises(ValueError, match="duplicate primary key"):
@@ -340,7 +349,7 @@ def test_normalizer_rejects_wrong_column_count():
 async def test_capturing_writer_rejects_duplicate_item_position():
     writer = _CapturingWriter()
     first = ("item_1", "tenant_a", "owner", "urn:rhoai:ogx:production", "conv_1", "{}", 100, 0)
-    duplicate_position = ("item_2", "tenant_a", "owner", "urn:rhoai:ogx:production", "conv_1", "{}", 101, 0)
+    duplicate_position = ("item_2", "tenant_b", "owner", "urn:rhoai:ogx:production", "conv_1", "{}", 101, 0)
 
     await writer.write_batch("items", [first])
     with pytest.raises(ValueError, match="duplicate Praxis item position"):

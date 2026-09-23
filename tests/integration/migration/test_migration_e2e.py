@@ -6,10 +6,11 @@
 
 """End-to-end assertion for the OGX->Praxis migration against real Postgres.
 
-This is the thin assertion half of the e2e (the workflow does the setup — see
-``conftest.py``). It reads the three Praxis target tables the migration wrote to
-and asserts, row-for-row, that they equal the committed golden fixture for the
-tenancy leg under test.
+This is the assertion and regression half of the e2e (the workflow does the
+setup — see ``conftest.py``). It reads the three Praxis target tables the
+migration wrote to and asserts, row-for-row, that they equal the committed
+golden fixture for the tenancy leg under test. It also verifies the live
+Postgres conflict behavior for globally unique Praxis IDs.
 
 Why this catches what the in-process SQLite guard (``tests/unit/cli/migrate/
 test_golden.py``) cannot, even though both compare against the *same*
@@ -27,7 +28,11 @@ The comparison is delegated to the shared, backend-agnostic normalizer in
 for this real round-trip (see that module's docstring for why that holds).
 """
 
+import uuid
+
 import asyncpg
+
+from ogx.cli.migrate.praxis.target import PraxisWriter
 
 from . import _compare
 
@@ -67,3 +72,62 @@ async def test_praxis_target_matches_golden(praxis_dsn: str, tenancy_mode: str):
     assert not problems, f"Praxis target tables do not match golden expected_{tenancy_mode}.json:\n" + "\n".join(
         problems
     )
+
+
+async def test_praxis_global_primary_keys_skip_cross_tenant_duplicate_ids(praxis_dsn: str):
+    """Praxis IDs are global, and items cannot cross a conversation's tenant boundary."""
+    writer = PraxisWriter(dsn=praxis_dsn, tables=_PRAXIS_TABLES)
+    await writer.connect()
+    assert writer._conn is not None
+    conn = writer._conn
+    suffix = uuid.uuid4().hex
+    response_id = f"resp-global-{suffix}"
+    conversation_id = f"conv-global-{suffix}"
+    item_a_id = f"item-global-a-{suffix}"
+    item_b_id = f"item-global-b-{suffix}"
+    try:
+        await writer.write_batch(
+            "responses",
+            [
+                (response_id, "tenant-a", "owner-a", "urn:rhoai:ogx:production", 1, "gpt-4o", "{}", "[]", "[]"),
+                (response_id, "tenant-b", "owner-b", "urn:rhoai:ogx:production", 2, "gpt-4o", "{}", "[]", "[]"),
+            ],
+        )
+        await writer.write_batch(
+            "conversations",
+            [
+                (conversation_id, "tenant-a", "owner-a", "urn:rhoai:ogx:production", 1, "{}", "[]"),
+                (conversation_id, "tenant-b", "owner-b", "urn:rhoai:ogx:production", 2, "{}", "[]"),
+            ],
+        )
+        await writer.write_batch(
+            "items",
+            [
+                (item_a_id, "tenant-a", "owner-a", "urn:rhoai:ogx:production", conversation_id, "{}", 1, 0),
+                (item_b_id, "tenant-b", "owner-b", "urn:rhoai:ogx:production", conversation_id, "{}", 2, 0),
+            ],
+        )
+
+        assert await conn.fetchval("SELECT count(*) FROM openai_responses WHERE id=$1", response_id) == 1
+        assert await conn.fetchval("SELECT tenant_id FROM openai_responses WHERE id=$1", response_id) == "tenant-a"
+        assert (
+            await conn.fetchval("SELECT count(*) FROM openai_conversations WHERE conversation_id=$1", conversation_id)
+            == 1
+        )
+        assert (
+            await conn.fetchval("SELECT tenant_id FROM openai_conversations WHERE conversation_id=$1", conversation_id)
+            == "tenant-a"
+        )
+        assert await conn.fetchval("SELECT count(*) FROM openai_conversation_items WHERE item_id=$1", item_a_id) == 1
+        assert (
+            await conn.fetchval("SELECT tenant_id FROM openai_conversation_items WHERE item_id=$1", item_a_id)
+            == "tenant-a"
+        )
+        assert await conn.fetchval("SELECT count(*) FROM openai_conversation_items WHERE item_id=$1", item_b_id) == 0
+    finally:
+        await conn.execute(
+            "DELETE FROM openai_conversation_items WHERE item_id = ANY($1::text[])", [item_a_id, item_b_id]
+        )
+        await conn.execute("DELETE FROM openai_conversations WHERE conversation_id=$1", conversation_id)
+        await conn.execute("DELETE FROM openai_responses WHERE id=$1", response_id)
+        await writer.close()
