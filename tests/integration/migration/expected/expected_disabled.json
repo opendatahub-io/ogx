@@ -1,13 +1,15 @@
 {
   "conversations": {
-    "conv_empty_owner\u0000default": {
+    "conv_empty_owner": {
       "conversation_id": "conv_empty_owner",
       "created_at": 300,
       "messages": [],
       "metadata": {},
+      "owner_issuer": "urn:rhoai:ogx:production",
+      "owner_subject": "fallback-owner",
       "tenant_id": "default"
     },
-    "conv_joined\u0000acme": {
+    "conv_joined": {
       "conversation_id": "conv_joined",
       "created_at": 100,
       "messages": [
@@ -20,16 +22,20 @@
       "metadata": {
         "k": "v"
       },
-      "tenant_id": "acme"
+      "owner_issuer": "urn:rhoai:ogx:production",
+      "owner_subject": "acme",
+      "tenant_id": "default"
     },
-    "conv_legacy\u0000default": {
+    "conv_legacy": {
       "conversation_id": "conv_legacy",
       "created_at": 200,
       "messages": [],
       "metadata": {},
+      "owner_issuer": "urn:rhoai:ogx:production",
+      "owner_subject": "fallback-owner",
       "tenant_id": "default"
     },
-    "conv_orphan\u0000default": {
+    "conv_orphan": {
       "conversation_id": "conv_orphan",
       "created_at": 999,
       "messages": [
@@ -40,11 +46,13 @@
         }
       ],
       "metadata": {},
+      "owner_issuer": "urn:rhoai:ogx:production",
+      "owner_subject": "fallback-owner",
       "tenant_id": "default"
     }
   },
   "items": {
-    "item_1\u0000acme\u0000conv_joined": {
+    "item_1": {
       "conversation_id": "conv_joined",
       "created_at": 100,
       "item_data": {
@@ -52,10 +60,12 @@
         "type": "message"
       },
       "item_id": "item_1",
+      "owner_issuer": "urn:rhoai:ogx:production",
+      "owner_subject": "acme",
       "position": 0,
-      "tenant_id": "acme"
+      "tenant_id": "default"
     },
-    "item_legacy\u0000default\u0000conv_legacy": {
+    "item_legacy": {
       "conversation_id": "conv_legacy",
       "created_at": 200,
       "item_data": {
@@ -64,10 +74,12 @@
         "type": "message"
       },
       "item_id": "item_legacy",
+      "owner_issuer": "urn:rhoai:ogx:production",
+      "owner_subject": "fallback-owner",
       "position": 0,
       "tenant_id": "default"
     },
-    "item_null_sort\u0000acme\u0000conv_joined": {
+    "item_null_sort": {
       "conversation_id": "conv_joined",
       "created_at": 105,
       "item_data": {
@@ -75,12 +87,14 @@
         "type": "message"
       },
       "item_id": "item_null_sort",
+      "owner_issuer": "urn:rhoai:ogx:production",
+      "owner_subject": "acme",
       "position": 1,
-      "tenant_id": "acme"
+      "tenant_id": "default"
     }
   },
   "responses": {
-    "default\u0000resp_1": {
+    "resp_1": {
       "created_at": 111,
       "id": "resp_1",
       "input": [
@@ -110,6 +124,8 @@
         }
       ],
       "model": "gpt-4o",
+      "owner_issuer": "urn:rhoai:ogx:production",
+      "owner_subject": "fallback-owner",
       "response_object": {
         "background": null,
         "completed_at": null,

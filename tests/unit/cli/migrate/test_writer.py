@@ -21,7 +21,7 @@ from ogx.cli.migrate.praxis.target import PraxisWriter
 _DEFAULT_TABLES = {
     "responses": "openai_responses",
     "conversations": "openai_conversations",
-    "items": "conversation_items",
+    "items": "openai_conversation_items",
 }
 
 
@@ -67,20 +67,27 @@ class TestSql:
         writer, _ = _writer_with_fake_conn()
         sql = writer.sql_for("responses")
         assert "INSERT INTO openai_responses" in sql
-        assert "ON CONFLICT (tenant_id, id) DO NOTHING" in sql
-        assert "(id, tenant_id, created_at, model, response_object, input, messages)" in sql
+        assert "ON CONFLICT (id) DO NOTHING" in sql
+        assert (
+            "(id, tenant_id, owner_subject, owner_issuer, created_at, model, response_object, input, messages)" in sql
+        )
 
     def test_conversations_sql(self):
         writer, _ = _writer_with_fake_conn()
         sql = writer.sql_for("conversations")
         assert "INSERT INTO openai_conversations" in sql
-        assert "ON CONFLICT (conversation_id, tenant_id) DO NOTHING" in sql
+        assert "(conversation_id, tenant_id, owner_subject, owner_issuer, created_at, metadata, messages)" in sql
+        assert "ON CONFLICT (conversation_id) DO NOTHING" in sql
 
     def test_items_sql(self):
         writer, _ = _writer_with_fake_conn()
         sql = writer.sql_for("items")
-        assert "INSERT INTO conversation_items" in sql
-        assert "ON CONFLICT (item_id, tenant_id, conversation_id) DO NOTHING" in sql
+        assert "INSERT INTO openai_conversation_items" in sql
+        assert (
+            "(item_id, tenant_id, owner_subject, owner_issuer, conversation_id, item_data, created_at, position)" in sql
+        )
+        assert "WHERE parent.conversation_id = $5 AND parent.tenant_id IS DISTINCT FROM $2" in sql
+        assert "ON CONFLICT (item_id) DO NOTHING" in sql
 
     def test_custom_table_names_are_bound(self):
         writer, _ = _writer_with_fake_conn({"responses": "praxis_resp", "conversations": "c", "items": "i"})
@@ -100,8 +107,8 @@ class TestWriteBatch:
     async def test_write_batch_passes_rows_and_wraps_transaction(self):
         writer, fake = _writer_with_fake_conn()
         rows = [
-            ("resp_1", "t1", 1, "m", "{}", "[]", "[]"),
-            ("resp_2", "t1", 2, "m", "{}", "[]", "[]"),
+            ("resp_1", "t1", "owner", "urn:rhoai:ogx:production", 1, "m", "{}", "[]", "[]"),
+            ("resp_2", "t1", "owner", "urn:rhoai:ogx:production", 2, "m", "{}", "[]", "[]"),
         ]
 
         submitted = await writer.write_batch("responses", rows)
@@ -138,7 +145,7 @@ class TestIdempotencyIntegration:
         try:
             tenant_id = f"migration-test-{uuid.uuid4().hex}"
             response_id = f"resp-{uuid.uuid4().hex}"
-            row = (response_id, tenant_id, 1, "gpt-4o", "{}", "[]", "[]")
+            row = (response_id, tenant_id, "owner", "urn:rhoai:ogx:production", 1, "gpt-4o", "{}", "[]", "[]")
             await writer.write_batch("responses", [row])
             await writer.write_batch("responses", [row])  # ON CONFLICT DO NOTHING
             count = await writer._conn.fetchval(
