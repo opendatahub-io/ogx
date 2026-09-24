@@ -1,5 +1,5 @@
 {
-  "test_id": "tests/integration/responses/test_reasoning.py::test_reasoning_basic_streaming[txt=vllm/Qwen/Qwen3-0.6B]",
+  "test_id": "tests/integration/inference/test_openai_embeddings.py::test_openai_embeddings_different_inputs_different_outputs[ogx_client-emb=sentence-transformers/nomic-ai/nomic-embed-text-v1.5]",
   "request": {
     "method": "POST",
     "url": "http://localhost:8000/v1/v1/models",
@@ -27,9 +27,9 @@
           "max_model_len": 8192,
           "permission": [
             {
-              "id": "modelperm-a3e322966a9e20d9",
+              "id": "modelperm-9d6f847f92016bf5",
               "object": "model_permission",
-              "created": 1790241798,
+              "created": 1790241056,
               "allow_create_engine": false,
               "allow_sampling": true,
               "allow_logprobs": true,
