@@ -14,6 +14,7 @@ setup_logging()
 
 from .connect import ConnectParser  # type: ignore[attr-defined]
 from .letsgo import LetsGo, LetsGoDeprecated
+from .migrate import MigrateParser  # type: ignore[attr-defined]
 from .run import Run
 from .stack import StackParser  # type: ignore[attr-defined]
 from .stack.utils import print_subcommand_description
@@ -41,6 +42,7 @@ class OGXCLIParser:
         Run.create(subparsers)
         StackParser.create(subparsers)
         ConnectParser.create(subparsers)
+        MigrateParser.create(subparsers)
 
         print_subcommand_description(self.parser, subparsers)
 
