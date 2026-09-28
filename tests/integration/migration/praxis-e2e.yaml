@@ -19,6 +19,9 @@
 # credentials. `allow_private_database_url: true` is required because the host is
 # loopback, and `ssl_mode: disable` because the CI Postgres has no TLS.
 
+insecure_options:
+  allow_private_endpoints: true
+
 listeners:
   - name: praxis-e2e
     address: "0.0.0.0:8080"
