@@ -110,7 +110,13 @@ jobs:
             exit 0
           fi
 
-          git cherry-pick --empty=drop "${migration_commits[@]}"
+          git cherry-pick --no-commit --empty=drop "${migration_commits[@]}"
+          git add --all
+          if git diff --cached --quiet; then
+            echo "Migration commits are already applied, skipping commit"
+          else
+            git commit -s -m "feat: backport migration changes to ${BRANCH}"
+          fi
 
       - name: Copy ODH workflows from main
         run: |
