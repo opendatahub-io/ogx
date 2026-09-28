@@ -50,6 +50,7 @@ _id_counters: dict[str, dict[str, int]] = {}
 # Test context uses ContextVar since it changes per-test and needs async isolation
 from openai.types.completion_choice import CompletionChoice
 
+from ogx.core.request_headers import stamp_test_id_into_headers
 from ogx.core.testing_context import get_test_context, is_debug_mode, set_test_context
 
 # update the "finish_reason" field, since its type definition is wrong (no None is accepted)
@@ -323,8 +324,10 @@ def _inject_test_id(request: httpx.Request) -> None:
     This is needed for server mode where the test ID must be transported from client to
     server via HTTP headers, so the server can key recordings/replay and per-test state
     (see ogx.core.testing_context.sync_test_context_from_provider_data). In library_client
-    mode this is a no-op since everything runs in the same process. No-op outside an active
-    test context too (test_id is None), so this is safe to install unconditionally.
+    mode this is a no-op since everything runs in the same process; the in-process call path
+    stamps the header itself instead, via the same stamp_test_id_into_headers() this
+    delegates to (see ogx.core.library_client), so the two can't drift apart. No-op outside
+    an active test context too (test_id is None), so this is safe to install unconditionally.
     """
     stack_config_type = os.environ.get("OGX_TEST_STACK_CONFIG_TYPE", "library_client")
     test_id = get_test_context()
@@ -332,10 +335,7 @@ def _inject_test_id(request: httpx.Request) -> None:
     if stack_config_type != "server" or not test_id:
         return
 
-    provider_data_header = request.headers.get("X-OGX-Provider-Data")
-    provider_data = json.loads(provider_data_header) if provider_data_header else {}
-    provider_data["__test_id"] = test_id
-    request.headers["X-OGX-Provider-Data"] = json.dumps(provider_data)
+    stamp_test_id_into_headers(request.headers)
 
     if is_debug_mode():
         logger.info("[RECORDING DEBUG] Injected test ID into request header:")
