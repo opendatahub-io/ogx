@@ -96,6 +96,22 @@ jobs:
           git checkout -b "${TEMP_BRANCH}"
           echo "Created temporary branch '${TEMP_BRANCH}' for PR"
 
+      - name: Cherry-pick migration changes from main
+        run: |
+          mapfile -t migration_commits < <(
+            git log --reverse --no-merges --format='%H' \
+              "tags/${TAG}"..origin/main -- \
+              src/ogx/cli/migrate \
+              tests/integration/migration
+          )
+
+          if (( ${#migration_commits[@]} == 0 )); then
+            echo "No migration commits found after ${TAG}"
+            exit 0
+          fi
+
+          git cherry-pick --empty=drop "${migration_commits[@]}"
+
       - name: Copy ODH workflows from main
         run: |
           workflows=(
