@@ -228,7 +228,7 @@ class PraxisConversationRow:
 
 @dataclass(frozen=True)
 class PraxisItemRow:
-    """A target row for the Praxis ``items`` table (PK ``item_id``)."""
+    """A target row for the Praxis ``items`` table (owner-scoped item PK)."""
 
     item_id: str
     tenant_id: str
@@ -489,10 +489,11 @@ def transform_legacy_inline_item(
 
 
 # INSERT ... ON CONFLICT DO NOTHING statements keyed by logical table. Conflict
-# targets equal Praxis's globally unique primary keys (verified against
-# schemas.rs). Response payloads are BYTEA and are bound as raw UTF-8 bytes;
-# the remaining JSON columns are TEXT holding serde_json strings. {t} is the
-# validated physical table name.
+# targets match the Praxis primary keys (verified against schemas.rs). Response
+# and conversation IDs are global; item IDs are scoped by tenant and owner.
+# Response payloads are BYTEA and are bound as raw UTF-8 bytes; the remaining
+# JSON columns are TEXT holding serde_json strings. {t} is the validated
+# physical table name.
 _INSERT_SQL: dict[str, str] = {
     "responses": (
         "INSERT INTO {t} (id, tenant_id, owner_subject, owner_issuer, created_at, model, response_object, input, messages) "
@@ -508,7 +509,7 @@ _INSERT_SQL: dict[str, str] = {
         "WHERE NOT EXISTS ("
         "SELECT 1 FROM {c} AS parent "
         "WHERE parent.conversation_id = $5 AND parent.tenant_id IS DISTINCT FROM $2"
-        ") ON CONFLICT (item_id) DO NOTHING"
+        ") ON CONFLICT (tenant_id, owner_issuer, owner_subject, item_id) DO NOTHING"
     ),
 }
 

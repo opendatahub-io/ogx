@@ -85,7 +85,7 @@ class _CapturingWriter(PraxisWriter):
             },
         )
         self.batches: dict[str, list[tuple]] = {}
-        self._primary_keys: dict[str, set[str]] = {}
+        self._primary_keys: dict[str, set[Any]] = {}
         self._item_positions: set[tuple] = set()
 
     async def connect(self) -> None:  # pragma: no cover - not used
@@ -97,12 +97,12 @@ class _CapturingWriter(PraxisWriter):
     async def write_batch(self, kind: str, rows: Sequence[tuple[Any, ...]]) -> int:
         if kind == "items":
             pending_rows = []
-            pending_primary_keys: set[str] = set()
+            pending_primary_keys: set[Any] = set()
             pending_positions: set[tuple] = set()
             for row in rows:
-                primary_key = row[0]
+                primary_key = (row[1], row[3], row[2], row[0])
                 if primary_key in self._primary_keys.get(kind, set()) or primary_key in pending_primary_keys:
-                    continue  # Matches ON CONFLICT (item_id) DO NOTHING.
+                    continue  # Matches the owner-scoped items primary key.
                 position_key = (row[4], row[7])
                 if position_key in self._item_positions or position_key in pending_positions:
                     raise ValueError(f"duplicate Praxis item position: {position_key!r}")
@@ -114,7 +114,7 @@ class _CapturingWriter(PraxisWriter):
             self.batches.setdefault(kind, []).extend(pending_rows)
         else:
             pending_rows = []
-            pending_primary_keys: set[str] = set()
+            pending_primary_keys: set[Any] = set()
             for row in rows:
                 primary_key = row[0]
                 if primary_key in self._primary_keys.get(kind, set()) or primary_key in pending_primary_keys:
@@ -317,7 +317,21 @@ def test_normalizer_parses_json_columns_and_keys_by_pk():
     assert resp["owner_issuer"] == "urn:rhoai:ogx:production"
     assert resp["created_at"] == 111
     assert normalized["conversations"]["conv_1"]["metadata"] == {"k": "v"}
-    assert normalized["items"]["item_1"]["item_data"] == {"type": "message"}
+    item_key = "\x00".join(("acme", "urn:rhoai:ogx:production", "owner", "item_1"))
+    assert normalized["items"][item_key]["item_data"] == {"type": "message"}
+
+
+def test_normalizer_allows_repeated_item_ids_across_owner_scopes():
+    issuer = "urn:rhoai:ogx:production"
+    rows = [
+        ("i", "tenant_a", "owner_a", issuer, "conversation_a", "{}", 0, 0),
+        ("i", "tenant_b", "owner_b", issuer, "conversation_b", "{}", 1, 0),
+    ]
+
+    normalized = _compare.normalize_rows("items", rows)
+
+    assert len(normalized) == 2
+    assert {record["owner_subject"] for record in normalized.values()} == {"owner_a", "owner_b"}
 
 
 def test_normalizer_decodes_response_bytea_columns():
@@ -347,7 +361,7 @@ def test_normalizer_rejects_duplicate_primary_key():
     dup = {
         "items": [
             ("i", "tenant_a", "owner", issuer, "conversation_a", "{}", 0, 0),
-            ("i", "tenant_b", "owner", issuer, "conversation_b", "{}", 9, 0),
+            ("i", "tenant_a", "owner", issuer, "conversation_b", "{}", 9, 0),
         ]
     }
     with pytest.raises(ValueError, match="duplicate primary key"):
@@ -367,3 +381,15 @@ async def test_capturing_writer_rejects_duplicate_item_position():
     await writer.write_batch("items", [first])
     with pytest.raises(ValueError, match="duplicate Praxis item position"):
         await writer.write_batch("items", [duplicate_position])
+
+
+async def test_capturing_writer_allows_repeated_item_ids_across_owner_scopes():
+    writer = _CapturingWriter()
+    issuer = "urn:rhoai:ogx:production"
+    first = ("item_shared", "tenant_a", "owner_a", issuer, "conv_a", "{}", 100, 0)
+    other_owner = ("item_shared", "tenant_b", "owner_b", issuer, "conv_b", "{}", 101, 0)
+    same_owner_duplicate = ("item_shared", "tenant_a", "owner_a", issuer, "conv_a", '{"duplicate":true}', 102, 1)
+
+    await writer.write_batch("items", [first, other_owner, same_owner_duplicate])
+
+    assert writer.batches["items"] == [first, other_owner]

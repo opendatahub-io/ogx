@@ -52,7 +52,7 @@
     }
   },
   "items": {
-    "item_1": {
+    "default\u0000urn:rhoai:ogx:production\u0000acme\u0000item_1": {
       "conversation_id": "conv_joined",
       "created_at": 100,
       "item_data": {
@@ -65,21 +65,7 @@
       "position": 0,
       "tenant_id": "default"
     },
-    "item_legacy": {
-      "conversation_id": "conv_legacy",
-      "created_at": 200,
-      "item_data": {
-        "id": "item_legacy",
-        "role": "user",
-        "type": "message"
-      },
-      "item_id": "item_legacy",
-      "owner_issuer": "urn:rhoai:ogx:production",
-      "owner_subject": "fallback-owner",
-      "position": 0,
-      "tenant_id": "default"
-    },
-    "item_null_sort": {
+    "default\u0000urn:rhoai:ogx:production\u0000acme\u0000item_null_sort": {
       "conversation_id": "conv_joined",
       "created_at": 105,
       "item_data": {
@@ -90,6 +76,20 @@
       "owner_issuer": "urn:rhoai:ogx:production",
       "owner_subject": "acme",
       "position": 1,
+      "tenant_id": "default"
+    },
+    "default\u0000urn:rhoai:ogx:production\u0000fallback-owner\u0000item_1": {
+      "conversation_id": "conv_legacy",
+      "created_at": 200,
+      "item_data": {
+        "id": "item_1",
+        "role": "user",
+        "type": "message"
+      },
+      "item_id": "item_1",
+      "owner_issuer": "urn:rhoai:ogx:production",
+      "owner_subject": "fallback-owner",
+      "position": 0,
       "tenant_id": "default"
     }
   },

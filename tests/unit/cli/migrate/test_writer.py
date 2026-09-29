@@ -87,7 +87,7 @@ class TestSql:
             "(item_id, tenant_id, owner_subject, owner_issuer, conversation_id, item_data, created_at, position)" in sql
         )
         assert "WHERE parent.conversation_id = $5 AND parent.tenant_id IS DISTINCT FROM $2" in sql
-        assert "ON CONFLICT (item_id) DO NOTHING" in sql
+        assert "ON CONFLICT (tenant_id, owner_issuer, owner_subject, item_id) DO NOTHING" in sql
 
     def test_custom_table_names_are_bound(self):
         writer, _ = _writer_with_fake_conn({"responses": "praxis_resp", "conversations": "c", "items": "i"})

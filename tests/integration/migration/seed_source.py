@@ -187,7 +187,8 @@ async def _seed_conversations_and_items(conversations_ref: SqlStoreReference, te
                 {
                     "id": CONV_LEGACY,
                     "created_at": 200,
-                    "items": [{"id": "item_legacy", "type": "message", "role": "user"}],
+                    # Reuse a table-backed item ID under another owner scope.
+                    "items": [{"id": "item_1", "type": "message", "role": "user"}],
                     "metadata": None,
                     "owner_principal": "",
                     "access_attributes": None,
