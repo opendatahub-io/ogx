@@ -96,6 +96,28 @@ jobs:
           git checkout -b "${TEMP_BRANCH}"
           echo "Created temporary branch '${TEMP_BRANCH}' for PR"
 
+      - name: Cherry-pick migration changes from main
+        run: |
+          mapfile -t migration_commits < <(
+            git log --reverse --no-merges --format='%H' \
+              "tags/${TAG}"..origin/main -- \
+              src/ogx/cli/migrate \
+              tests/integration/migration
+          )
+
+          if (( ${#migration_commits[@]} == 0 )); then
+            echo "No migration commits found after ${TAG}"
+            exit 0
+          fi
+
+          git cherry-pick --no-commit --empty=drop "${migration_commits[@]}"
+          git add --all
+          if git diff --cached --quiet; then
+            echo "Migration commits are already applied, skipping commit"
+          else
+            git commit -s -m "feat: backport migration changes to ${BRANCH}"
+          fi
+
       - name: Copy ODH workflows from main
         run: |
           workflows=(
