@@ -39,7 +39,7 @@ constraint-dependencies = [
 
 [project]
 name = "ogx"
-version = "1.2.5.1+rhaiv.0"
+version = "1.2.5.2+rhaiv.0"
 authors = [{ name = "The OGX Contributors", email = "contributors@ogx.dev" }]
 description = "Open-source, OpenAI-compatible API server with pluggable providers for any model and any infrastructure"
 readme = "README.md"
@@ -118,7 +118,7 @@ starter = [
     "pillow",
     "pgvector>=0.3.0",
     "pymilvus[milvus-lite]>=2.4.10",
-    "pymongo",
+    "pymongo>=4.18.1",                         # CVE-2026-88029: query-operator injection
     "pypdf>=6.13.3",
     "pythainlp",
     "qdrant-client",
@@ -185,7 +185,7 @@ type_checking = [
     "datasets",
     "together",
     "nest-asyncio",
-    "pymongo",
+    "pymongo>=4.18.1",                         # CVE-2026-88029: query-operator injection
     "torchvision",
     "sqlite-vec",
     "faiss-cpu",
