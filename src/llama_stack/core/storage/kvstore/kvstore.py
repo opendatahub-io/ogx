@@ -37,7 +37,7 @@ def kvstore_dependencies() -> list[str]:
     This function returns the union of all dependencies for cases where the specific
     kvstore type is not known at declaration time (e.g., provider registries).
     """
-    return ["aiosqlite", "psycopg2-binary", "redis", "pymongo"]
+    return ["aiosqlite", "psycopg2-binary", "redis", "pymongo>=4.18.1"]
 
 
 class InmemoryKVStoreImpl(KVStore):
