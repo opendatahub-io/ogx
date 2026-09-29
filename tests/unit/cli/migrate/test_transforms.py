@@ -328,18 +328,40 @@ class TestTransformItem:
 
 
 class TestItemPositionAllocator:
-    def test_collision_across_tenants_shares_conversation_position_scope(self) -> None:
+    def test_repeated_positions_are_preserved_across_owner_scopes(self) -> None:
         allocator = ItemPositionAllocator()
         issuer = "urn:rhoai:ogx:production"
-        first = PraxisItemRow("item_a", "tenant_a", "owner_a", issuer, "conv_1", "{}", 100, 0)
-        cross_tenant = PraxisItemRow("item_b", "tenant_b", "owner_b", issuer, "conv_1", "{}", 101, 0)
+        rows = [
+            PraxisItemRow("item_a", "tenant_a", "owner_a", issuer, "conv_1", "{}", 100, 0),
+            PraxisItemRow("item_b", "tenant_b", "owner_a", issuer, "conv_1", "{}", 101, 0),
+            PraxisItemRow("item_c", "tenant_a", "owner_b", issuer, "conv_1", "{}", 102, 0),
+            PraxisItemRow("item_d", "tenant_a", "owner_a", "urn:example:other", "conv_1", "{}", 103, 0),
+        ]
 
-        allocator.observe("items", first)
-        allocator.observe("items", cross_tenant)
+        for item in rows:
+            allocator.observe("items", item)
         allocator.finalize()
 
-        assert allocator.allocate("items", first).position == 0
-        assert allocator.allocate("items", cross_tenant).position == 1
+        assert [allocator.allocate("items", item).position for item in rows] == [0, 0, 0, 0]
+
+    def test_allocation_keys_include_owner_scope(self) -> None:
+        issuer = "urn:rhoai:ogx:production"
+        owner_a_first = PraxisItemRow("item_a", "tenant_a", "owner_a", issuer, "conv_1", "{}", 100, 0)
+        owner_a_shared = PraxisItemRow("item_shared", "tenant_a", "owner_a", issuer, "conv_1", "{}", 102, 0)
+        other_scope_rows = (
+            PraxisItemRow("item_shared", "tenant_b", "owner_a", issuer, "conv_1", "{}", 101, 0),
+            PraxisItemRow("item_shared", "tenant_a", "owner_b", issuer, "conv_1", "{}", 101, 0),
+            PraxisItemRow("item_shared", "tenant_a", "owner_a", "urn:example:other", "conv_1", "{}", 101, 0),
+        )
+
+        for other_scope in other_scope_rows:
+            allocator = ItemPositionAllocator()
+            for item in (owner_a_first, other_scope, owner_a_shared):
+                allocator.observe("items", item)
+            allocator.finalize()
+
+            allocated = [allocator.allocate("items", item) for item in (owner_a_first, other_scope, owner_a_shared)]
+            assert [item.position for item in allocated] == [0, 0, 1]
 
     def test_collision_preserves_source_position_order(self) -> None:
         allocator = ItemPositionAllocator()

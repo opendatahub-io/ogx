@@ -78,6 +78,19 @@
       "position": 1,
       "tenant_id": "default"
     },
+    "default\u0000urn:rhoai:ogx:production\u0000another-owner\u0000item_other_owner": {
+      "conversation_id": "conv_joined",
+      "created_at": 110,
+      "item_data": {
+        "id": "item_other_owner",
+        "type": "message"
+      },
+      "item_id": "item_other_owner",
+      "owner_issuer": "urn:rhoai:ogx:production",
+      "owner_subject": "another-owner",
+      "position": 0,
+      "tenant_id": "default"
+    },
     "default\u0000urn:rhoai:ogx:production\u0000fallback-owner\u0000item_1": {
       "conversation_id": "conv_legacy",
       "created_at": 200,

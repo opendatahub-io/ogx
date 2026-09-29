@@ -75,7 +75,7 @@ async def test_praxis_target_matches_golden(praxis_dsn: str, tenancy_mode: str):
 
 
 async def test_praxis_primary_key_conflicts_follow_schema(praxis_dsn: str):
-    """Responses/conversations use global IDs; item IDs are scoped to their owner."""
+    """Responses/conversations use global IDs; item IDs and positions are owner-scoped."""
     writer = PraxisWriter(dsn=praxis_dsn, tables=_PRAXIS_TABLES)
     await writer.connect()
     assert writer._conn is not None
@@ -87,6 +87,7 @@ async def test_praxis_primary_key_conflicts_follow_schema(praxis_dsn: str):
     conversation_b_id = f"conv-item-b-{suffix}"
     item_id = f"item-shared-{suffix}"
     cross_tenant_item_id = f"item-cross-tenant-{suffix}"
+    cross_owner_position_item_id = f"item-cross-owner-position-{suffix}"
     try:
         await writer.write_batch(
             "responses",
@@ -120,6 +121,16 @@ async def test_praxis_primary_key_conflicts_follow_schema(praxis_dsn: str):
                     3,
                     1,
                 ),
+                (
+                    cross_owner_position_item_id,
+                    "tenant-a",
+                    "owner-other",
+                    "urn:rhoai:ogx:production",
+                    conversation_a_id,
+                    "{}",
+                    4,
+                    0,
+                ),
             ],
         )
 
@@ -144,12 +155,21 @@ async def test_praxis_primary_key_conflicts_follow_schema(praxis_dsn: str):
             ("tenant-b", "urn:rhoai:ogx:production", "owner-b"),
         ]
         assert (
+            await conn.fetchval(
+                "SELECT count(*) FROM openai_conversation_items WHERE conversation_id=$1 AND position=$2",
+                conversation_a_id,
+                0,
+            )
+            == 2
+        )
+        assert (
             await conn.fetchval("SELECT count(*) FROM openai_conversation_items WHERE item_id=$1", cross_tenant_item_id)
             == 0
         )
     finally:
         await conn.execute(
-            "DELETE FROM openai_conversation_items WHERE item_id = ANY($1::text[])", [item_id, cross_tenant_item_id]
+            "DELETE FROM openai_conversation_items WHERE item_id = ANY($1::text[])",
+            [item_id, cross_tenant_item_id, cross_owner_position_item_id],
         )
         await conn.execute(
             "DELETE FROM openai_conversations WHERE conversation_id = ANY($1::text[])",

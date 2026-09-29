@@ -259,6 +259,8 @@ class _PendingItemPosition:
     source: str
     item_id: str
     tenant_id: str
+    owner_issuer: str
+    owner_subject: str
     conversation_id: str
     position: int
 
@@ -267,17 +269,18 @@ class ItemPositionAllocator:
     """Normalize item positions without changing their source ordering.
 
     Items are collected across both OGX storage representations before any are
-    allocated. Within each conversation they are ordered by source
+    allocated. Within each owner's conversation they are ordered by source
     position and item id, then shifted upward only when required for Praxis's
-    unique-position constraint. Deferring allocation is necessary because the
-    source table is paged by item id rather than position: allocating online can
-    let an early collision take a position belonging to a later source row.
+    owner-scoped unique-position constraint. Deferring allocation is necessary
+    because the source table is paged by item id rather than position:
+    allocating online can let an early collision take a position belonging to
+    a later source row.
     """
 
     def __init__(self) -> None:
         self._pending: list[_PendingItemPosition] = []
         self._retained: dict[str, list[PraxisItemRow]] = {}
-        self._assigned: dict[tuple[str, str, str, str, int], deque[int]] | None = None
+        self._assigned: dict[tuple[str, str, str, str, str, str, int], deque[int]] | None = None
 
     def observe(self, source: str, item: PraxisItemRow, *, retain: bool = False) -> None:
         if self._assigned is not None:
@@ -288,6 +291,8 @@ class ItemPositionAllocator:
                 source=source,
                 item_id=item.item_id,
                 tenant_id=item.tenant_id,
+                owner_issuer=item.owner_issuer,
+                owner_subject=item.owner_subject,
                 conversation_id=item.conversation_id,
                 position=item.position,
             )
@@ -300,11 +305,12 @@ class ItemPositionAllocator:
         if self._assigned is not None:
             return
 
-        grouped: dict[str, list[_PendingItemPosition]] = {}
+        grouped: dict[tuple[str, str, str, str], list[_PendingItemPosition]] = {}
         for entry in self._pending:
-            grouped.setdefault(entry.conversation_id, []).append(entry)
+            group_key = (entry.tenant_id, entry.owner_issuer, entry.owner_subject, entry.conversation_id)
+            grouped.setdefault(group_key, []).append(entry)
 
-        assigned: dict[tuple[str, str, str, str, int], deque[int]] = {}
+        assigned: dict[tuple[str, str, str, str, str, str, int], deque[int]] = {}
         for pending in grouped.values():
             pending.sort(key=lambda entry: (entry.position, entry.item_id, entry.sequence))
             previous_position: int | None = None
@@ -316,6 +322,8 @@ class ItemPositionAllocator:
                     entry.source,
                     entry.item_id,
                     entry.tenant_id,
+                    entry.owner_issuer,
+                    entry.owner_subject,
                     entry.conversation_id,
                     entry.position,
                 )
@@ -328,7 +336,15 @@ class ItemPositionAllocator:
     def allocate(self, source: str, item: PraxisItemRow) -> PraxisItemRow:
         if self._assigned is None:
             raise RuntimeError("Failed to allocate an item before positions were finalized")
-        assignment_key = (source, item.item_id, item.tenant_id, item.conversation_id, item.position)
+        assignment_key = (
+            source,
+            item.item_id,
+            item.tenant_id,
+            item.owner_issuer,
+            item.owner_subject,
+            item.conversation_id,
+            item.position,
+        )
         positions = self._assigned.get(assignment_key)
         if not positions:
             raise RuntimeError(f"Failed to allocate unobserved item {item.item_id!r}")

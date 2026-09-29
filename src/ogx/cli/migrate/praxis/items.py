@@ -7,10 +7,10 @@
 """``ogx migrate praxis`` — items phase: conversation_items -> Praxis.
 
 Copies the ``conversation_items`` table (which lives on the conversations
-backend) while normalizing positions that would violate Praxis's per-
-conversation uniqueness constraint. Legacy inline items stored directly on an
-``openai_conversations`` row are handled separately, as a backfill during the
-conversations phase — see :mod:`.conversations`.
+backend) while normalizing positions that would violate Praxis's owner-scoped
+conversation position uniqueness constraint. Legacy inline items stored
+directly on an ``openai_conversations`` row are handled separately, as a
+backfill during the conversations phase — see :mod:`.conversations`.
 """
 
 from typing import Any

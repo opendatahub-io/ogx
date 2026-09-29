@@ -241,6 +241,21 @@ async def _seed_conversations_and_items(conversations_ref: SqlStoreReference, te
                 tenant_enabled,
                 TENANT_JOINED,
             ),
+            # Same conversation/position as item_1, but a separate owner scope
+            # keeps position 0 under Praxis's v4 index.
+            _with_tenant(
+                {
+                    "id": "item_other_owner",
+                    "conversation_id": CONV_JOINED,
+                    "created_at": 110,
+                    "sort_order": 0,
+                    "item_data": {"type": "message", "id": "item_other_owner"},
+                    "owner_principal": "another-owner",
+                    "access_attributes": None,
+                },
+                tenant_enabled,
+                TENANT_JOINED,
+            ),
         ],
     )
 

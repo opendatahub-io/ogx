@@ -121,6 +121,21 @@ class TestWriteBatch:
         assert fake.transaction_entered == 1
         assert fake.transaction_exited == 1
 
+    async def test_item_sql_preserves_positions_across_owner_scopes(self):
+        writer, fake = _writer_with_fake_conn()
+        issuer = "urn:rhoai:ogx:production"
+        rows = [
+            ("item_a", "tenant_a", "owner_a", issuer, "conv_1", "{}", 100, 0),
+            ("item_b", "tenant_a", "owner_b", issuer, "conv_1", "{}", 101, 0),
+        ]
+
+        submitted = await writer.write_batch("items", rows)
+
+        assert submitted == 2
+        sql, sent_rows = fake.executemany_calls[0]
+        assert "INSERT INTO openai_conversation_items" in sql
+        assert sent_rows == rows
+
     async def test_empty_batch_is_noop(self):
         writer, fake = _writer_with_fake_conn()
         submitted = await writer.write_batch("responses", [])
@@ -155,5 +170,43 @@ class TestIdempotencyIntegration:
         finally:
             await writer._conn.execute(
                 "DELETE FROM openai_responses WHERE tenant_id=$1 AND id=$2", tenant_id, response_id
+            )
+            await writer.close()
+
+    async def test_item_positions_may_repeat_across_owner_scopes(self):
+        dsn = os.environ["PRAXIS_TEST_DSN"]
+        writer = PraxisWriter(dsn=dsn, tables=_DEFAULT_TABLES)
+        await writer.connect()
+        tenant_id = f"migration-test-{uuid.uuid4().hex}"
+        conversation_id = f"conversation-{uuid.uuid4().hex}"
+        issuer = "urn:rhoai:ogx:production"
+        try:
+            await writer.write_batch(
+                "conversations",
+                [(conversation_id, tenant_id, "owner_a", issuer, 100, "{}", "[]")],
+            )
+            items = [
+                ("item_a", tenant_id, "owner_a", issuer, conversation_id, "{}", 100, 0),
+                ("item_b", tenant_id, "owner_b", issuer, conversation_id, "{}", 101, 0),
+            ]
+            await writer.write_batch("items", items)
+
+            count = await writer._conn.fetchval(
+                "SELECT count(*) FROM openai_conversation_items "
+                "WHERE tenant_id=$1 AND conversation_id=$2 AND position=$3",
+                tenant_id,
+                conversation_id,
+                0,
+            )
+            assert count == 2
+        finally:
+            await writer._conn.execute(
+                "DELETE FROM openai_conversation_items WHERE tenant_id=$1 AND conversation_id=$2",
+                tenant_id,
+                conversation_id,
+            )
+            await writer._conn.execute(
+                "DELETE FROM openai_conversations WHERE conversation_id=$1",
+                conversation_id,
             )
             await writer.close()

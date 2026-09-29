@@ -103,7 +103,7 @@ class _CapturingWriter(PraxisWriter):
                 primary_key = (row[1], row[3], row[2], row[0])
                 if primary_key in self._primary_keys.get(kind, set()) or primary_key in pending_primary_keys:
                     continue  # Matches the owner-scoped items primary key.
-                position_key = (row[4], row[7])
+                position_key = (row[1], row[3], row[2], row[4], row[7])
                 if position_key in self._item_positions or position_key in pending_positions:
                     raise ValueError(f"duplicate Praxis item position: {position_key!r}")
                 pending_rows.append(row)
@@ -376,18 +376,29 @@ def test_normalizer_rejects_wrong_column_count():
 async def test_capturing_writer_rejects_duplicate_item_position():
     writer = _CapturingWriter()
     first = ("item_1", "tenant_a", "owner", "urn:rhoai:ogx:production", "conv_1", "{}", 100, 0)
-    duplicate_position = ("item_2", "tenant_b", "owner", "urn:rhoai:ogx:production", "conv_1", "{}", 101, 0)
+    duplicate_position = ("item_2", "tenant_a", "owner", "urn:rhoai:ogx:production", "conv_1", "{}", 101, 0)
 
     await writer.write_batch("items", [first])
     with pytest.raises(ValueError, match="duplicate Praxis item position"):
         await writer.write_batch("items", [duplicate_position])
 
 
+async def test_capturing_writer_allows_repeated_positions_across_owner_scopes():
+    writer = _CapturingWriter()
+    issuer = "urn:rhoai:ogx:production"
+    owner_a = ("item_a", "tenant_a", "owner_a", issuer, "conv_1", "{}", 100, 0)
+    owner_b = ("item_b", "tenant_a", "owner_b", issuer, "conv_1", "{}", 101, 0)
+
+    await writer.write_batch("items", [owner_a, owner_b])
+
+    assert writer.batches["items"] == [owner_a, owner_b]
+
+
 async def test_capturing_writer_allows_repeated_item_ids_across_owner_scopes():
     writer = _CapturingWriter()
     issuer = "urn:rhoai:ogx:production"
     first = ("item_shared", "tenant_a", "owner_a", issuer, "conv_a", "{}", 100, 0)
-    other_owner = ("item_shared", "tenant_b", "owner_b", issuer, "conv_b", "{}", 101, 0)
+    other_owner = ("item_shared", "tenant_a", "owner_b", issuer, "conv_a", "{}", 101, 0)
     same_owner_duplicate = ("item_shared", "tenant_a", "owner_a", issuer, "conv_a", '{"duplicate":true}', 102, 1)
 
     await writer.write_batch("items", [first, other_owner, same_owner_duplicate])
