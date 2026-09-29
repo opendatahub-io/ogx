@@ -497,6 +497,8 @@ jobs:
           # Convert PEP 440 dev version to valid semver for npm
           # e.g. 0.4.5.dev20260202 -> 0.4.5-dev.20260202
           VERSION="${BASE_VERSION/.dev/-dev.}"
+          # Convert 4-part versions (e.g. 1.2.5.1-dev.20260911 -> 1.2.5-1-dev.20260911) to valid semver
+          VERSION=$(echo "$VERSION" | sed -E 's/^([0-9]+\.[0-9]+\.[0-9]+)\.([0-9]+)/\1-\2/')
 
           # Function to check if version exists on npm using registry API
           check_npm_version_exists() {
