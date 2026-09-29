@@ -1,0 +1,171 @@
+{
+  "conversations": {
+    "conv_empty_owner\u0000default": {
+      "conversation_id": "conv_empty_owner",
+      "created_at": 300,
+      "messages": [],
+      "metadata": {},
+      "tenant_id": "default"
+    },
+    "conv_joined\u0000acme": {
+      "conversation_id": "conv_joined",
+      "created_at": 100,
+      "messages": [
+        {
+          "content": "joined",
+          "name": null,
+          "role": "user"
+        }
+      ],
+      "metadata": {
+        "k": "v"
+      },
+      "tenant_id": "acme"
+    },
+    "conv_legacy\u0000default": {
+      "conversation_id": "conv_legacy",
+      "created_at": 200,
+      "messages": [],
+      "metadata": {},
+      "tenant_id": "default"
+    },
+    "conv_orphan\u0000default": {
+      "conversation_id": "conv_orphan",
+      "created_at": 999,
+      "messages": [
+        {
+          "content": "orphan",
+          "name": null,
+          "role": "user"
+        }
+      ],
+      "metadata": {},
+      "tenant_id": "default"
+    }
+  },
+  "items": {
+    "item_1\u0000acme\u0000conv_joined": {
+      "conversation_id": "conv_joined",
+      "created_at": 100,
+      "item_data": {
+        "id": "item_1",
+        "type": "message"
+      },
+      "item_id": "item_1",
+      "position": 0,
+      "tenant_id": "acme"
+    },
+    "item_legacy\u0000default\u0000conv_legacy": {
+      "conversation_id": "conv_legacy",
+      "created_at": 200,
+      "item_data": {
+        "id": "item_legacy",
+        "role": "user",
+        "type": "message"
+      },
+      "item_id": "item_legacy",
+      "position": 0,
+      "tenant_id": "default"
+    },
+    "item_null_sort\u0000acme\u0000conv_joined": {
+      "conversation_id": "conv_joined",
+      "created_at": 105,
+      "item_data": {
+        "id": "item_null_sort",
+        "type": "message"
+      },
+      "item_id": "item_null_sort",
+      "position": 1,
+      "tenant_id": "acme"
+    }
+  },
+  "responses": {
+    "default\u0000resp_1": {
+      "created_at": 111,
+      "id": "resp_1",
+      "input": [
+        {
+          "content": [
+            {
+              "text": "hi",
+              "type": "input_text"
+            }
+          ],
+          "id": "msg_in",
+          "role": "user",
+          "status": null,
+          "type": "message"
+        }
+      ],
+      "messages": [
+        {
+          "content": "hi",
+          "name": null,
+          "role": "user"
+        },
+        {
+          "content": "again",
+          "name": null,
+          "role": "user"
+        }
+      ],
+      "model": "gpt-4o",
+      "response_object": {
+        "background": null,
+        "completed_at": null,
+        "created_at": 111,
+        "error": null,
+        "frequency_penalty": null,
+        "id": "resp_1",
+        "incomplete_details": null,
+        "instructions": null,
+        "max_output_tokens": null,
+        "max_tool_calls": null,
+        "metadata": null,
+        "model": "gpt-4o",
+        "object": "response",
+        "output": [
+          {
+            "content": [
+              {
+                "annotations": [],
+                "logprobs": null,
+                "text": "hello",
+                "type": "output_text"
+              }
+            ],
+            "id": "msg_out",
+            "role": "assistant",
+            "status": "completed",
+            "type": "message"
+          }
+        ],
+        "parallel_tool_calls": true,
+        "presence_penalty": null,
+        "previous_response_id": null,
+        "prompt": null,
+        "prompt_cache_key": null,
+        "reasoning": null,
+        "safety_identifier": null,
+        "service_tier": null,
+        "skills": null,
+        "status": "completed",
+        "store": true,
+        "temperature": null,
+        "text": {
+          "format": {
+            "type": "text"
+          },
+          "verbosity": "medium"
+        },
+        "tool_choice": null,
+        "tools": null,
+        "top_logprobs": null,
+        "top_p": null,
+        "truncation": null,
+        "usage": null
+      },
+      "tenant_id": "default"
+    }
+  }
+}
