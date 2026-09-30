@@ -172,7 +172,7 @@ class _SourceReader:
 
 @dataclass
 class _Stats:
-    """Per-phase counters + a manifest of rows skipped under --skip-errors."""
+    """Per-phase counters + a manifest of rows skipped during a dry run."""
 
     read: Counter[str] = field(default_factory=Counter)
     transformed: Counter[str] = field(default_factory=Counter)
@@ -185,7 +185,7 @@ class _RunOptions:
     """CLI knobs threaded unchanged through every migration phase."""
 
     batch_size: int
-    skip_errors: bool
+    continue_on_error: bool
 
 
 # Looks up (or lazily creates) the raw reader for a backend; captures the
@@ -193,9 +193,9 @@ class _RunOptions:
 _ReaderFor = Callable[[str, str], Awaitable["_SourceReader"]]
 
 
-def _handle_row_error(kind: str, row_id: str, exc: Exception, stats: _Stats, skip_errors: bool) -> None:
-    """Fail fast by default; under --skip-errors, record and continue."""
-    if not skip_errors:
+def _handle_row_error(kind: str, row_id: str, exc: Exception, stats: _Stats, continue_on_error: bool) -> None:
+    """Fail fast by default; record and continue during a diagnostic dry run."""
+    if not continue_on_error:
         raise RuntimeError(f"Failed to migrate {kind} row {row_id!r}: {exc}") from exc
     # Store only the exception type, never str(exc): a Pydantic ValidationError
     # embeds the offending input value, which would leak source row data into

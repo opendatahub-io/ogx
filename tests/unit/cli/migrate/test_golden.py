@@ -13,8 +13,9 @@ assertion test does, and compares them to the committed golden fixtures. This:
 * unit-tests the shared normalizer (:mod:`tests.integration.migration._compare`);
 * pins the golden fixtures the Postgres e2e asserts against, without needing
   Postgres/Praxis — the target rows are backend-independent (every JSON column is
-  re-serialized by the pure transforms and stored verbatim as TEXT), so a golden
-  generated here is faithful to a real Postgres+Praxis round-trip;
+  re-serialized by the pure transforms and stored verbatim as UTF-8 JSON bytes or
+  TEXT), so a golden generated here is faithful to a real Postgres+Praxis
+  round-trip;
 * keeps the seed dataset and the golden in lockstep — regenerate both with
   ``OGX_MIGRATION_UPDATE_GOLDEN=1 uv run pytest tests/unit/cli/migrate/test_golden.py``.
 
@@ -41,6 +42,7 @@ from ogx.cli.migrate.praxis.reader import _build_progress, _read_schema, _RunOpt
 from ogx.cli.migrate.praxis.responses import _RESPONSES_COLUMNS, _migrate_responses
 from ogx.cli.migrate.praxis.target import (
     ItemPositionAllocator,
+    OwnerSubjectDeriver,
     PraxisWriter,
     TenantDeriver,
     transform_legacy_inline_item,
@@ -59,9 +61,8 @@ from tests.integration.migration import _compare, seed_source
 _RESPONSES_TABLE = "responses"
 _CONVERSATIONS_TABLE = "openai_conversations"
 
-# default_tenant_id used for the SINGLE-mode leg; must match the workflow's
-# OGX_DEFAULT_TENANT_ID and is what the message-only orphan derives (it has no
-# owner_principal, so it falls back to the deployment default tenant).
+# default_tenant_id used for the SINGLE-mode source seed; it must match the
+# workflow's OGX_DEFAULT_TENANT_ID.
 _DEFAULT_TENANT_ID = "acme-corp"
 
 _MODES = {
@@ -84,7 +85,7 @@ class _CapturingWriter(PraxisWriter):
             },
         )
         self.batches: dict[str, list[tuple]] = {}
-        self._item_primary_keys: set[tuple] = set()
+        self._primary_keys: dict[str, set[Any]] = {}
         self._item_positions: set[tuple] = set()
 
     async def connect(self) -> None:  # pragma: no cover - not used
@@ -96,23 +97,32 @@ class _CapturingWriter(PraxisWriter):
     async def write_batch(self, kind: str, rows: Sequence[tuple[Any, ...]]) -> int:
         if kind == "items":
             pending_rows = []
-            pending_primary_keys: set[tuple] = set()
+            pending_primary_keys: set[Any] = set()
             pending_positions: set[tuple] = set()
             for row in rows:
-                primary_key = (row[0], row[1], row[2])
-                if primary_key in self._item_primary_keys or primary_key in pending_primary_keys:
-                    continue  # Matches ON CONFLICT (item_id, tenant_id, conversation_id) DO NOTHING.
-                position_key = (row[1], row[2], row[5])
+                primary_key = (row[1], row[3], row[2], row[0])
+                if primary_key in self._primary_keys.get(kind, set()) or primary_key in pending_primary_keys:
+                    continue  # Matches the owner-scoped items primary key.
+                position_key = (row[1], row[3], row[2], row[4], row[7])
                 if position_key in self._item_positions or position_key in pending_positions:
                     raise ValueError(f"duplicate Praxis item position: {position_key!r}")
                 pending_rows.append(row)
                 pending_primary_keys.add(primary_key)
                 pending_positions.add(position_key)
-            self._item_primary_keys.update(pending_primary_keys)
+            self._primary_keys.setdefault(kind, set()).update(pending_primary_keys)
             self._item_positions.update(pending_positions)
             self.batches.setdefault(kind, []).extend(pending_rows)
         else:
-            self.batches.setdefault(kind, []).extend(rows)
+            pending_rows = []
+            pending_primary_keys: set[Any] = set()
+            for row in rows:
+                primary_key = row[0]
+                if primary_key in self._primary_keys.get(kind, set()) or primary_key in pending_primary_keys:
+                    continue  # Matches the table's single-column primary key.
+                pending_rows.append(row)
+                pending_primary_keys.add(primary_key)
+            self._primary_keys.setdefault(kind, set()).update(pending_primary_keys)
+            self.batches.setdefault(kind, []).extend(pending_rows)
         return len(rows)
 
 
@@ -163,17 +173,19 @@ async def _migrate_in_process(mode: TenancyMode, default_tenant_id: str | None) 
 
             writer = _CapturingWriter()
             position_allocator = ItemPositionAllocator()
-            tenant = TenantDeriver()  # sentinel "default", matching the CLI default
+            tenant = TenantDeriver(fallback_tenant="default")
+            owner_subject = OwnerSubjectDeriver("fallback-owner")
             stats = _Stats()
             # A single-row batch exercises position planning across page boundaries.
-            opts = _RunOptions(batch_size=1, skip_errors=False)
+            opts = _RunOptions(batch_size=1, continue_on_error=False)
             with _disabled_progress() as progress:
-                await _migrate_responses(reader, writer, tenant, _RESPONSES_TABLE, stats, progress, opts)
+                await _migrate_responses(reader, writer, tenant, owner_subject, _RESPONSES_TABLE, stats, progress, opts)
                 await _migrate_conversations(
                     reader,
                     reader,
                     writer,
                     tenant,
+                    owner_subject,
                     _CONVERSATIONS_TABLE,
                     True,
                     True,
@@ -184,7 +196,7 @@ async def _migrate_in_process(mode: TenancyMode, default_tenant_id: str | None) 
                     opts,
                     position_allocator,
                 )
-                await _migrate_items(reader, writer, tenant, stats, progress, opts, position_allocator)
+                await _migrate_items(reader, writer, tenant, owner_subject, stats, progress, opts, position_allocator)
         finally:
             await shutdown_sqlstore_backends()
             set_default_tenancy_config(TenancyConfig())
@@ -246,7 +258,8 @@ async def test_item_passes_share_one_source_snapshot():
                     {"id": "item_legacy", "type": "message"},
                     position=0,
                     conv_row={"id": "conv_legacy", "created_at": 99, "owner_principal": "tenant_1"},
-                    tenant=TenantDeriver(),
+                    tenant=TenantDeriver(fallback_tenant="default"),
+                    owner_subject=OwnerSubjectDeriver("fallback-owner"),
                 ),
                 retain=True,
             )
@@ -255,10 +268,11 @@ async def test_item_passes_share_one_source_snapshot():
                 await _migrate_items(
                     reader,
                     writer,
-                    TenantDeriver(),
+                    TenantDeriver(fallback_tenant="default"),
+                    OwnerSubjectDeriver("fallback-owner"),
                     _Stats(),
                     progress,
-                    _RunOptions(batch_size=1, skip_errors=False),
+                    _RunOptions(batch_size=1, continue_on_error=False),
                     allocator,
                 )
 
@@ -272,52 +286,121 @@ async def test_item_passes_share_one_source_snapshot():
 
 
 def _sample_batches():
+    issuer = "urn:rhoai:ogx:production"
     return {
-        "responses": [("resp_1", "default", 111, "gpt-4o", '{"id":"resp_1"}', "[]", '[{"role":"user"}]')],
-        "conversations": [("conv_1", "acme", 100, '{"k":"v"}', "[]")],
-        "items": [("item_1", "acme", "conv_1", '{"type":"message"}', 100, 0)],
+        "responses": [
+            (
+                "resp_1",
+                "default",
+                "fallback-owner",
+                issuer,
+                111,
+                "gpt-4o",
+                '{"id":"resp_1"}',
+                "[]",
+                '[{"role":"user"}]',
+            )
+        ],
+        "conversations": [("conv_1", "acme", "owner", issuer, 100, '{"k":"v"}', "[]")],
+        "items": [("item_1", "acme", "owner", issuer, "conv_1", '{"type":"message"}', 100, 0)],
     }
 
 
 def test_normalizer_parses_json_columns_and_keys_by_pk():
     normalized = _compare.normalize_all(_sample_batches())
     assert set(normalized) == {"responses", "conversations", "items"}
-    # responses keyed by (tenant_id, id); JSON-as-TEXT parsed to structures.
-    resp = normalized["responses"]["default\x00resp_1"]
+    # Responses are keyed by globally unique id; JSON payloads are parsed to structures.
+    resp = normalized["responses"]["resp_1"]
     assert resp["response_object"] == {"id": "resp_1"}
     assert resp["input"] == []
     assert resp["messages"] == [{"role": "user"}]
+    assert resp["owner_issuer"] == "urn:rhoai:ogx:production"
     assert resp["created_at"] == 111
-    assert normalized["conversations"]["conv_1\x00acme"]["metadata"] == {"k": "v"}
-    assert normalized["items"]["item_1\x00acme\x00conv_1"]["item_data"] == {"type": "message"}
+    assert normalized["conversations"]["conv_1"]["metadata"] == {"k": "v"}
+    item_key = "\x00".join(("acme", "urn:rhoai:ogx:production", "owner", "item_1"))
+    assert normalized["items"][item_key]["item_data"] == {"type": "message"}
+
+
+def test_normalizer_allows_repeated_item_ids_across_owner_scopes():
+    issuer = "urn:rhoai:ogx:production"
+    rows = [
+        ("i", "tenant_a", "owner_a", issuer, "conversation_a", "{}", 0, 0),
+        ("i", "tenant_b", "owner_b", issuer, "conversation_b", "{}", 1, 0),
+    ]
+
+    normalized = _compare.normalize_rows("items", rows)
+
+    assert len(normalized) == 2
+    assert {record["owner_subject"] for record in normalized.values()} == {"owner_a", "owner_b"}
+
+
+def test_normalizer_decodes_response_bytea_columns():
+    batches = _sample_batches()
+    response = batches["responses"][0]
+    batches["responses"] = [(*response[:6], b'{"id":"resp_1"}', b"[]", b'[{"role":"user"}]')]
+
+    normalized = _compare.normalize_all(batches)
+
+    assert normalized["responses"]["resp_1"]["response_object"] == {"id": "resp_1"}
+    assert normalized["responses"]["resp_1"]["input"] == []
+    assert normalized["responses"]["resp_1"]["messages"] == [{"role": "user"}]
 
 
 def test_normalizer_is_order_independent():
     batches = _sample_batches()
     batches["items"] = [
-        ("item_b", "t", "c", "{}", 1, 1),
-        ("item_a", "t", "c", "{}", 0, 0),
+        ("item_b", "t", "owner", "urn:rhoai:ogx:production", "c", "{}", 1, 1),
+        ("item_a", "t", "owner", "urn:rhoai:ogx:production", "c", "{}", 0, 0),
     ]
     reversed_batches = {**batches, "items": list(reversed(batches["items"]))}
     assert _compare.normalize_all(batches) == _compare.normalize_all(reversed_batches)
 
 
 def test_normalizer_rejects_duplicate_primary_key():
-    dup = {"items": [("i", "t", "c", "{}", 0, 0), ("i", "t", "c", "{}", 9, 9)]}
+    issuer = "urn:rhoai:ogx:production"
+    dup = {
+        "items": [
+            ("i", "tenant_a", "owner", issuer, "conversation_a", "{}", 0, 0),
+            ("i", "tenant_a", "owner", issuer, "conversation_b", "{}", 9, 0),
+        ]
+    }
     with pytest.raises(ValueError, match="duplicate primary key"):
         _compare.normalize_all(dup)
 
 
 def test_normalizer_rejects_wrong_column_count():
-    with pytest.raises(ValueError, match="expected 6 columns"):
+    with pytest.raises(ValueError, match="expected 8 columns"):
         _compare.normalize_rows("items", [("i", "t", "c")])
 
 
 async def test_capturing_writer_rejects_duplicate_item_position():
     writer = _CapturingWriter()
-    first = ("item_1", "tenant_a", "conv_1", "{}", 100, 0)
-    duplicate_position = ("item_2", "tenant_a", "conv_1", "{}", 101, 0)
+    first = ("item_1", "tenant_a", "owner", "urn:rhoai:ogx:production", "conv_1", "{}", 100, 0)
+    duplicate_position = ("item_2", "tenant_a", "owner", "urn:rhoai:ogx:production", "conv_1", "{}", 101, 0)
 
     await writer.write_batch("items", [first])
     with pytest.raises(ValueError, match="duplicate Praxis item position"):
         await writer.write_batch("items", [duplicate_position])
+
+
+async def test_capturing_writer_allows_repeated_positions_across_owner_scopes():
+    writer = _CapturingWriter()
+    issuer = "urn:rhoai:ogx:production"
+    owner_a = ("item_a", "tenant_a", "owner_a", issuer, "conv_1", "{}", 100, 0)
+    owner_b = ("item_b", "tenant_a", "owner_b", issuer, "conv_1", "{}", 101, 0)
+
+    await writer.write_batch("items", [owner_a, owner_b])
+
+    assert writer.batches["items"] == [owner_a, owner_b]
+
+
+async def test_capturing_writer_allows_repeated_item_ids_across_owner_scopes():
+    writer = _CapturingWriter()
+    issuer = "urn:rhoai:ogx:production"
+    first = ("item_shared", "tenant_a", "owner_a", issuer, "conv_a", "{}", 100, 0)
+    other_owner = ("item_shared", "tenant_a", "owner_b", issuer, "conv_a", "{}", 101, 0)
+    same_owner_duplicate = ("item_shared", "tenant_a", "owner_a", issuer, "conv_a", '{"duplicate":true}', 102, 1)
+
+    await writer.write_batch("items", [first, other_owner, same_owner_duplicate])
+
+    assert writer.batches["items"] == [first, other_owner]

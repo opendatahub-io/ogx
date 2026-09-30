@@ -33,10 +33,25 @@ from ogx_api import (
 )
 
 # OGX tenant_id regex (mirrors ogx.core.datatypes._TENANT_ID_RE). Used only to
-# validate the caller-supplied sentinel; derived verbatim values are not
+# validate the caller-supplied optional fallback; derived verbatim values are not
 # re-validated because Praxis imposes no constraint on tenant_id and verbatim
 # preservation keeps isolation exactly as it was in the source.
 _TENANT_ID_RE = re.compile(r"^[a-z0-9][a-z0-9\-_]{0,127}$")
+
+# RFC 8141 URNs use an ASCII namespace identifier and a non-empty namespace
+# specific string. The optional r-component, q-component, and fragment are
+# included so this accepts general URNs rather than only the simple form used
+# by the default issuer.
+_URN_COMPONENT = r"(?:[A-Za-z0-9._~!$&'()*+,;=:@/-]|%[0-9A-Fa-f]{2})+"
+_URN_SUFFIX = r"(?:[A-Za-z0-9._~!$&'()*+,;=:@/?-]|%[0-9A-Fa-f]{2})+"
+_URN_NID = r"[A-Za-z0-9][A-Za-z0-9-]{0,30}[A-Za-z0-9]"
+_URN_RE = re.compile(
+    rf"^urn:{_URN_NID}:{_URN_COMPONENT}"
+    rf"(?:\?[+=]{_URN_SUFFIX})?(?:#{_URN_SUFFIX})?$",
+    re.IGNORECASE,
+)
+
+DEFAULT_OWNER_ISSUER = "urn:rhoai:ogx:production"
 
 # PostgreSQL identifier rules for target table names. Names are interpolated
 # unquoted into INSERT statements, so restrict them to a safe character set.
@@ -66,10 +81,33 @@ class _StoredResponseBlob(OpenAIResponseObjectWithInput):
     input_storage_mode: str | None = None
 
 
-def _validate_sentinel(sentinel: str) -> str:
-    normalized = sentinel.strip().lower()
+def _validate_fallback_tenant(fallback_tenant: str | None) -> str | None:
+    if fallback_tenant is None:
+        return None
+    normalized = fallback_tenant.strip().lower()
     if not _TENANT_ID_RE.match(normalized):
-        raise ValueError(f"Failed to validate --tenant-sentinel {sentinel!r}: must match [a-z0-9][a-z0-9-_]{{0,127}}")
+        raise ValueError(
+            f"Failed to validate --fallback-tenant {fallback_tenant!r}: must match [a-z0-9][a-z0-9-_]{{0,127}}"
+        )
+    return normalized
+
+
+def _validate_fallback_owner_subject(fallback_owner_subject: str | None) -> str | None:
+    if fallback_owner_subject is None:
+        return None
+    if not isinstance(fallback_owner_subject, str) or not fallback_owner_subject.strip():
+        raise ValueError(
+            "Failed to validate --fallback-owner-subject: a non-empty value is required for rows without "
+            "owner_principal"
+        )
+    return fallback_owner_subject.strip()
+
+
+def validate_owner_issuer(owner_issuer: str) -> str:
+    """Validate and normalize the issuer written to every Praxis row."""
+    normalized = owner_issuer.strip()
+    if not _URN_RE.fullmatch(normalized):
+        raise ValueError(f"Failed to validate --owner-issuer {owner_issuer!r}: must be a valid URN")
     return normalized
 
 
@@ -86,69 +124,116 @@ def validate_table_name(name: str) -> str:
     return name
 
 
-class TenantDeriver:
-    """Derive Praxis ``tenant_id`` from a source row, verbatim.
+class TenantDerivationError(ValueError):
+    """Raised when a source row cannot be assigned a safe, consistent tenant."""
 
-    Precedence: an explicit ``owner_principal -> tenant_id`` override map first,
-    then the source ``tenant_id`` column (present only when tenancy is enabled),
-    then ``owner_principal`` (the DISABLED-mode default), then the sentinel for
-    empty values. Verbatim copying preserves source isolation exactly with zero
-    collision risk.
+
+class OwnerSubjectDerivationError(ValueError):
+    """Raised when a source row cannot be assigned an owner subject."""
+
+
+class TenantDeriver:
+    """Derive Praxis ``tenant_id`` from a source row.
+
+    The source ``tenant_id`` column takes precedence and is copied verbatim
+    after trimming surrounding whitespace. Rows without a source tenant use the
+    optional CLI fallback.
     """
 
-    def __init__(self, sentinel: str = "default", explicit_map: Mapping[str, str] | None = None) -> None:
-        self.sentinel = _validate_sentinel(sentinel)
-        self.explicit_map: dict[str, str] = dict(explicit_map or {})
+    def __init__(self, fallback_tenant: str | None = None) -> None:
+        self.fallback_tenant = _validate_fallback_tenant(fallback_tenant)
 
-    def derive(self, owner_principal: str | None, tenant_id_col: str | None) -> str:
-        if owner_principal is not None and owner_principal in self.explicit_map:
-            return self.explicit_map[owner_principal]
-        # Normalize both candidates before applying precedence: a whitespace-only
-        # tenant_id column must fall back to owner_principal rather than collapsing
-        # different owners into the shared sentinel tenant.
+    def derive(self, _owner_principal: str | None, tenant_id_col: str | None) -> str:
         source_tenant = (tenant_id_col or "").strip()
-        owner_tenant = (owner_principal or "").strip()
-        return source_tenant or owner_tenant or self.sentinel
+        if source_tenant:
+            return source_tenant
+        if self.fallback_tenant is None:
+            raise TenantDerivationError(
+                "Failed to derive tenant_id: source row has no tenant_id and --fallback-tenant was not provided"
+            )
+        return self.fallback_tenant
+
+
+class OwnerSubjectDeriver:
+    """Derive Praxis ``owner_subject`` from a source owner principal."""
+
+    def __init__(self, fallback_owner_subject: str | None = None) -> None:
+        self.fallback_owner_subject = _validate_fallback_owner_subject(fallback_owner_subject)
+
+    def derive(self, owner_principal: str | None) -> str:
+        source_owner = (owner_principal or "").strip()
+        if source_owner:
+            return source_owner
+        if self.fallback_owner_subject is None:
+            raise OwnerSubjectDerivationError(
+                "Failed to derive owner_subject: source row has no non-empty owner_principal and "
+                "--fallback-owner-subject was not provided"
+            )
+        return self.fallback_owner_subject
 
 
 @dataclass(frozen=True)
 class PraxisResponseRow:
-    """A target row for the Praxis ``responses`` table (PK ``(tenant_id, id)``)."""
+    """A target row for the Praxis ``responses`` table (PK ``id``)."""
 
     tenant_id: str
+    owner_subject: str
+    owner_issuer: str
     id: str
     created_at: int
     model: str
-    response_object: str
-    input: str
-    messages: str
+    response_object: bytes
+    input: bytes
+    messages: bytes
 
     def as_row(self) -> tuple[Any, ...]:
         """Positional tuple matching the responses INSERT column order."""
-        return (self.id, self.tenant_id, self.created_at, self.model, self.response_object, self.input, self.messages)
+        return (
+            self.id,
+            self.tenant_id,
+            self.owner_subject,
+            self.owner_issuer,
+            self.created_at,
+            self.model,
+            self.response_object,
+            self.input,
+            self.messages,
+        )
 
 
 @dataclass(frozen=True)
 class PraxisConversationRow:
-    """A target row for the Praxis ``conversations`` table (PK ``(conversation_id, tenant_id)``)."""
+    """A target row for the Praxis ``conversations`` table (PK ``conversation_id``)."""
 
     conversation_id: str
     tenant_id: str
+    owner_subject: str
+    owner_issuer: str
     created_at: int
     metadata: str
     messages: str
 
     def as_row(self) -> tuple[Any, ...]:
         """Positional tuple matching the conversations INSERT column order."""
-        return (self.conversation_id, self.tenant_id, self.created_at, self.metadata, self.messages)
+        return (
+            self.conversation_id,
+            self.tenant_id,
+            self.owner_subject,
+            self.owner_issuer,
+            self.created_at,
+            self.metadata,
+            self.messages,
+        )
 
 
 @dataclass(frozen=True)
 class PraxisItemRow:
-    """A target row for the Praxis ``items`` table (PK ``(item_id, tenant_id, conversation_id)``)."""
+    """A target row for the Praxis ``items`` table (owner-scoped item PK)."""
 
     item_id: str
     tenant_id: str
+    owner_subject: str
+    owner_issuer: str
     conversation_id: str
     item_data: str
     created_at: int
@@ -156,7 +241,16 @@ class PraxisItemRow:
 
     def as_row(self) -> tuple[Any, ...]:
         """Positional tuple matching the items INSERT column order."""
-        return (self.item_id, self.tenant_id, self.conversation_id, self.item_data, self.created_at, self.position)
+        return (
+            self.item_id,
+            self.tenant_id,
+            self.owner_subject,
+            self.owner_issuer,
+            self.conversation_id,
+            self.item_data,
+            self.created_at,
+            self.position,
+        )
 
 
 @dataclass(frozen=True)
@@ -165,6 +259,8 @@ class _PendingItemPosition:
     source: str
     item_id: str
     tenant_id: str
+    owner_issuer: str
+    owner_subject: str
     conversation_id: str
     position: int
 
@@ -173,17 +269,18 @@ class ItemPositionAllocator:
     """Normalize item positions without changing their source ordering.
 
     Items are collected across both OGX storage representations before any are
-    allocated. Within each tenant/conversation they are ordered by source
+    allocated. Within each owner's conversation they are ordered by source
     position and item id, then shifted upward only when required for Praxis's
-    unique-position constraint. Deferring allocation is necessary because the
-    source table is paged by item id rather than position: allocating online can
-    let an early collision take a position belonging to a later source row.
+    owner-scoped unique-position constraint. Deferring allocation is necessary
+    because the source table is paged by item id rather than position:
+    allocating online can let an early collision take a position belonging to
+    a later source row.
     """
 
     def __init__(self) -> None:
         self._pending: list[_PendingItemPosition] = []
         self._retained: dict[str, list[PraxisItemRow]] = {}
-        self._assigned: dict[tuple[str, str, str, str, int], deque[int]] | None = None
+        self._assigned: dict[tuple[str, str, str, str, str, str, int], deque[int]] | None = None
 
     def observe(self, source: str, item: PraxisItemRow, *, retain: bool = False) -> None:
         if self._assigned is not None:
@@ -194,6 +291,8 @@ class ItemPositionAllocator:
                 source=source,
                 item_id=item.item_id,
                 tenant_id=item.tenant_id,
+                owner_issuer=item.owner_issuer,
+                owner_subject=item.owner_subject,
                 conversation_id=item.conversation_id,
                 position=item.position,
             )
@@ -206,11 +305,12 @@ class ItemPositionAllocator:
         if self._assigned is not None:
             return
 
-        grouped: dict[tuple[str, str], list[_PendingItemPosition]] = {}
+        grouped: dict[tuple[str, str, str, str], list[_PendingItemPosition]] = {}
         for entry in self._pending:
-            grouped.setdefault((entry.tenant_id, entry.conversation_id), []).append(entry)
+            group_key = (entry.tenant_id, entry.owner_issuer, entry.owner_subject, entry.conversation_id)
+            grouped.setdefault(group_key, []).append(entry)
 
-        assigned: dict[tuple[str, str, str, str, int], deque[int]] = {}
+        assigned: dict[tuple[str, str, str, str, str, str, int], deque[int]] = {}
         for pending in grouped.values():
             pending.sort(key=lambda entry: (entry.position, entry.item_id, entry.sequence))
             previous_position: int | None = None
@@ -222,6 +322,8 @@ class ItemPositionAllocator:
                     entry.source,
                     entry.item_id,
                     entry.tenant_id,
+                    entry.owner_issuer,
+                    entry.owner_subject,
                     entry.conversation_id,
                     entry.position,
                 )
@@ -234,7 +336,15 @@ class ItemPositionAllocator:
     def allocate(self, source: str, item: PraxisItemRow) -> PraxisItemRow:
         if self._assigned is None:
             raise RuntimeError("Failed to allocate an item before positions were finalized")
-        assignment_key = (source, item.item_id, item.tenant_id, item.conversation_id, item.position)
+        assignment_key = (
+            source,
+            item.item_id,
+            item.tenant_id,
+            item.owner_issuer,
+            item.owner_subject,
+            item.conversation_id,
+            item.position,
+        )
         positions = self._assigned.get(assignment_key)
         if not positions:
             raise RuntimeError(f"Failed to allocate unobserved item {item.item_id!r}")
@@ -248,7 +358,12 @@ class ItemPositionAllocator:
         return [self.allocate(source, item) for item in self._retained.pop(source, [])]
 
 
-def transform_response(row: Mapping[str, Any], tenant: TenantDeriver) -> PraxisResponseRow:
+def transform_response(
+    row: Mapping[str, Any],
+    tenant: TenantDeriver,
+    owner_subject: OwnerSubjectDeriver,
+    owner_issuer: str = DEFAULT_OWNER_ISSUER,
+) -> PraxisResponseRow:
     """Decompose an OGX ``openai_responses`` row into a Praxis responses row.
 
     The stored ``response_object`` blob is ``OpenAIResponseObject.model_dump()``
@@ -265,12 +380,14 @@ def transform_response(row: Mapping[str, Any], tenant: TenantDeriver) -> PraxisR
     )
     return PraxisResponseRow(
         tenant_id=tenant.derive(row.get("owner_principal"), row.get("tenant_id")),
+        owner_subject=owner_subject.derive(row.get("owner_principal")),
         id=row["id"],
         created_at=int(row["created_at"]),
         model=row["model"],
-        response_object=public.model_dump_json(),
-        input=json.dumps(blob.get("input", [])),
-        messages=json.dumps(blob.get("messages") or []),
+        response_object=public.model_dump_json().encode("utf-8"),
+        input=json.dumps(blob.get("input", [])).encode("utf-8"),
+        messages=json.dumps(blob.get("messages") or []).encode("utf-8"),
+        owner_issuer=owner_issuer,
     )
 
 
@@ -278,6 +395,8 @@ def transform_conversation(
     conv_row: Mapping[str, Any],
     messages_row: Mapping[str, Any] | None,
     tenant: TenantDeriver,
+    owner_subject: OwnerSubjectDeriver,
+    owner_issuer: str = DEFAULT_OWNER_ISSUER,
 ) -> PraxisConversationRow:
     """Build a Praxis conversations row by joining an ``openai_conversations``
     row with its ``conversation_messages`` row (may be absent).
@@ -292,23 +411,27 @@ def transform_conversation(
         messages = messages_row["messages"]
         messages_tenant_id = tenant.derive(messages_row.get("owner_principal"), messages_row.get("tenant_id"))
         if messages_tenant_id != tenant_id:
-            raise ValueError(
+            raise TenantDerivationError(
                 f"Failed to join conversation {conv_row.get('id')!r}: openai_conversations derives tenant_id "
                 f"{tenant_id!r} but conversation_messages derives {messages_tenant_id!r}"
             )
     return PraxisConversationRow(
         conversation_id=conv_row["id"],
         tenant_id=tenant_id,
+        owner_subject=owner_subject.derive(conv_row.get("owner_principal")),
         created_at=int(conv_row["created_at"]),
         metadata=json.dumps(conv_row.get("metadata") or {}),
         messages=json.dumps(messages or []),
+        owner_issuer=owner_issuer,
     )
 
 
 def transform_message_only_conversation(
     messages_row: Mapping[str, Any],
     tenant: TenantDeriver,
+    owner_subject: OwnerSubjectDeriver,
     orphan_created_at: int,
+    owner_issuer: str = DEFAULT_OWNER_ISSUER,
 ) -> PraxisConversationRow:
     """Synthesize a Praxis conversations row for a ``conversation_messages``
     orphan — a conversation with continuity messages but no
@@ -316,13 +439,20 @@ def transform_message_only_conversation(
     return PraxisConversationRow(
         conversation_id=messages_row["conversation_id"],
         tenant_id=tenant.derive(messages_row.get("owner_principal"), messages_row.get("tenant_id")),
+        owner_subject=owner_subject.derive(messages_row.get("owner_principal")),
         created_at=int(orphan_created_at),
         metadata="{}",
         messages=json.dumps(messages_row.get("messages") or []),
+        owner_issuer=owner_issuer,
     )
 
 
-def transform_item(row: Mapping[str, Any], tenant: TenantDeriver) -> PraxisItemRow:
+def transform_item(
+    row: Mapping[str, Any],
+    tenant: TenantDeriver,
+    owner_subject: OwnerSubjectDeriver,
+    owner_issuer: str = DEFAULT_OWNER_ISSUER,
+) -> PraxisItemRow:
     """Copy an OGX ``conversation_items`` row into a Praxis items row.
 
     ``id -> item_id``, ``sort_order -> position`` (legacy ``NULL`` becomes 0),
@@ -332,10 +462,12 @@ def transform_item(row: Mapping[str, Any], tenant: TenantDeriver) -> PraxisItemR
     return PraxisItemRow(
         item_id=row["id"],
         tenant_id=tenant.derive(row.get("owner_principal"), row.get("tenant_id")),
+        owner_subject=owner_subject.derive(row.get("owner_principal")),
         conversation_id=row["conversation_id"],
         item_data=json.dumps(row["item_data"]),
         created_at=int(row["created_at"]),
         position=int(sort_order) if sort_order is not None else 0,
+        owner_issuer=owner_issuer,
     )
 
 
@@ -344,6 +476,8 @@ def transform_legacy_inline_item(
     position: int,
     conv_row: Mapping[str, Any],
     tenant: TenantDeriver,
+    owner_subject: OwnerSubjectDeriver,
+    owner_issuer: str = DEFAULT_OWNER_ISSUER,
 ) -> PraxisItemRow:
     """Backfill an item from the deprecated inline ``openai_conversations.items``
     list into the Praxis items stream.
@@ -361,29 +495,37 @@ def transform_legacy_inline_item(
     return PraxisItemRow(
         item_id=item_id,
         tenant_id=tenant.derive(conv_row.get("owner_principal"), conv_row.get("tenant_id")),
+        owner_subject=owner_subject.derive(conv_row.get("owner_principal")),
         conversation_id=conv_row["id"],
         item_data=json.dumps(dict(element)),
         created_at=int(conv_row["created_at"]),
         position=position,
+        owner_issuer=owner_issuer,
     )
 
 
 # INSERT ... ON CONFLICT DO NOTHING statements keyed by logical table. Conflict
-# targets equal Praxis's primary keys (verified against schemas.rs). Praxis
-# stores JSON columns as TEXT holding serde_json strings, so binding Python str
-# is the exact contract. {t} is the validated physical table name.
+# targets match the Praxis primary keys (verified against schemas.rs). Response
+# and conversation IDs are global; item IDs are scoped by tenant and owner.
+# Response payloads are BYTEA and are bound as raw UTF-8 bytes; the remaining
+# JSON columns are TEXT holding serde_json strings. {t} is the validated
+# physical table name.
 _INSERT_SQL: dict[str, str] = {
     "responses": (
-        "INSERT INTO {t} (id, tenant_id, created_at, model, response_object, input, messages) "
-        "VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (tenant_id, id) DO NOTHING"
+        "INSERT INTO {t} (id, tenant_id, owner_subject, owner_issuer, created_at, model, response_object, input, messages) "
+        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT (id) DO NOTHING"
     ),
     "conversations": (
-        "INSERT INTO {t} (conversation_id, tenant_id, created_at, metadata, messages) "
-        "VALUES ($1, $2, $3, $4, $5) ON CONFLICT (conversation_id, tenant_id) DO NOTHING"
+        "INSERT INTO {t} (conversation_id, tenant_id, owner_subject, owner_issuer, created_at, metadata, messages) "
+        "VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (conversation_id) DO NOTHING"
     ),
     "items": (
-        "INSERT INTO {t} (item_id, tenant_id, conversation_id, item_data, created_at, position) "
-        "VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (item_id, tenant_id, conversation_id) DO NOTHING"
+        "INSERT INTO {t} (item_id, tenant_id, owner_subject, owner_issuer, conversation_id, item_data, created_at, position) "
+        "SELECT $1, $2, $3, $4, $5, $6, $7, $8 "
+        "WHERE NOT EXISTS ("
+        "SELECT 1 FROM {c} AS parent "
+        "WHERE parent.conversation_id = $5 AND parent.tenant_id IS DISTINCT FROM $2"
+        ") ON CONFLICT (tenant_id, owner_issuer, owner_subject, item_id) DO NOTHING"
     ),
 }
 
@@ -395,7 +537,8 @@ class PraxisWriter:
     Idempotency/resumability rests solely on ``ON CONFLICT DO NOTHING`` against
     the natural primary key: a restarted Job re-reads the source and skips
     already-written rows, crash-safe at any point and safe to re-run, with zero
-    footprint in the target.
+    footprint in the target. Item inserts additionally reject a child when its
+    target conversation already belongs to another tenant.
     """
 
     def __init__(self, dsn: str, tables: Mapping[str, str]) -> None:
@@ -421,7 +564,9 @@ class PraxisWriter:
             raise ValueError(f"Failed to build SQL for unknown target table {kind!r}")
         if kind not in self.tables:
             raise ValueError(f"Failed to build SQL: no physical table name configured for {kind!r}")
-        return _INSERT_SQL[kind].format(t=self.tables[kind])
+        if kind == "items" and "conversations" not in self.tables:
+            raise ValueError("Failed to build SQL: items require a physical conversations table name")
+        return _INSERT_SQL[kind].format(t=self.tables[kind], c=self.tables.get("conversations", ""))
 
     async def write_batch(self, kind: str, rows: Sequence[tuple[Any, ...]]) -> int:
         """Write a batch of positional tuples in a single transaction.

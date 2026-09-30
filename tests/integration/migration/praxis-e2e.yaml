@@ -30,6 +30,12 @@ listeners:
 filter_chains:
   - name: store-pipeline
     filters:
+      - filter: state_owner
+        mode: single_tenant
+        tenant_id: default
+
+      - filter: openai_operation
+
       # Handles all /v1/conversations locally; creates openai_conversations +
       # openai_conversation_items on first request.
       - filter: openai_conversations

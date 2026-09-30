@@ -6,13 +6,13 @@
 
 """Fixtures for the OGX->Praxis migration e2e.
 
-This suite is assertion-only: the GitHub Actions workflow
+This suite is assertion-focused: the GitHub Actions workflow
 (``.github/workflows/migration-e2e-praxis.yml``) does the heavy lifting — it
 stands up Postgres + Praxis, seeds the OGX source, and runs the real ``ogx
 migrate praxis`` CLI — then hands this test two things via the environment:
 
 * ``PRAXIS_TEST_DSN`` — an asyncpg DSN for the *target* Postgres the migration
-  wrote to (read-only access is sufficient); and
+  wrote to (the key-conflict regression test inserts and removes temporary rows); and
 * ``MIGRATION_TENANCY_MODE`` — which tenancy leg ran (``disabled``, ``single``,
   or ``multi``),
   selecting the golden fixture to compare against.

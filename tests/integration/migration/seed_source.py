@@ -8,8 +8,8 @@
 
 Seeds an OGX source database with a fixed dataset that exercises every migration
 path — the responses blob decomposition, the two-pass conversation join, the
-message-only orphan pass, the legacy inline-item backfill, and each
-``TenantDeriver`` branch. It is driven from the CI workflow (``python
+message-only orphan pass, the legacy inline-item backfill, and both source-
+tenant/fallback paths. It is driven from the CI workflow (``python
 tests/integration/migration/seed_source.py <config>``) and reused in-process by
 the golden-guard unit test.
 
@@ -67,7 +67,7 @@ RESPONSE_MODEL = "gpt-4o"
 
 CONV_JOINED = "conv_joined"  # openai_conversations row + continuity messages -> Pass A join
 CONV_LEGACY = "conv_legacy"  # openai_conversations row with deprecated inline items -> backfill
-CONV_EMPTY_OWNER = "conv_empty_owner"  # empty owner + (single) empty tenant_id -> sentinel
+CONV_EMPTY_OWNER = "conv_empty_owner"  # empty owner + (single) empty tenant_id -> fallback
 CONV_ORPHAN = "conv_orphan"  # continuity messages only, no conversations row -> Pass B orphan
 
 # Per-row tenant_id values used only in SINGLE mode. Chosen distinct from the
@@ -187,7 +187,8 @@ async def _seed_conversations_and_items(conversations_ref: SqlStoreReference, te
                 {
                     "id": CONV_LEGACY,
                     "created_at": 200,
-                    "items": [{"id": "item_legacy", "type": "message", "role": "user"}],
+                    # Reuse a table-backed item ID under another owner scope.
+                    "items": [{"id": "item_1", "type": "message", "role": "user"}],
                     "metadata": None,
                     "owner_principal": "",
                     "access_attributes": None,
@@ -205,7 +206,7 @@ async def _seed_conversations_and_items(conversations_ref: SqlStoreReference, te
                     "access_attributes": None,
                 },
                 tenant_enabled,
-                "",  # empty tenant_id + empty owner -> sentinel in both modes
+                "",  # empty tenant_id + empty owner -> CLI fallback
             ),
         ],
     )
@@ -235,6 +236,21 @@ async def _seed_conversations_and_items(conversations_ref: SqlStoreReference, te
                     "sort_order": None,  # legacy NULL sort_order -> position 0
                     "item_data": {"type": "message", "id": "item_null_sort"},
                     "owner_principal": "acme",
+                    "access_attributes": None,
+                },
+                tenant_enabled,
+                TENANT_JOINED,
+            ),
+            # Same conversation/position as item_1, but a separate owner scope
+            # keeps position 0 under Praxis's v4 index.
+            _with_tenant(
+                {
+                    "id": "item_other_owner",
+                    "conversation_id": CONV_JOINED,
+                    "created_at": 110,
+                    "sort_order": 0,
+                    "item_data": {"type": "message", "id": "item_other_owner"},
+                    "owner_principal": "another-owner",
                     "access_attributes": None,
                 },
                 tenant_enabled,

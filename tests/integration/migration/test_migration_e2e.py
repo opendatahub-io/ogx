@@ -6,18 +6,19 @@
 
 """End-to-end assertion for the OGX->Praxis migration against real Postgres.
 
-This is the thin assertion half of the e2e (the workflow does the setup — see
-``conftest.py``). It reads the three Praxis target tables the migration wrote to
-and asserts, row-for-row, that they equal the committed golden fixture for the
-tenancy leg under test.
+This is the assertion and regression half of the e2e (the workflow does the
+setup — see ``conftest.py``). It reads the three Praxis target tables the
+migration wrote to and asserts, row-for-row, that they equal the committed
+golden fixture for the tenancy leg under test. It also verifies the live
+Postgres conflict behavior for each table's primary key.
 
 Why this catches what the in-process SQLite guard (``tests/unit/cli/migrate/
 test_golden.py``) cannot, even though both compare against the *same*
 golden:
 
 * the asyncpg ``INSERT ... ON CONFLICT DO NOTHING`` write leg actually executes;
-* Postgres type coercion round-trips (BIGINT ``created_at``/``position``, JSON
-  stored as ``TEXT``) instead of SQLite's looser typing;
+* Postgres type coercion round-trips (BIGINT ``created_at``/``position`` and
+  response payloads stored as ``BYTEA``) instead of SQLite's looser typing;
 * the target tables exist with the DDL/PK contract **Praxis** stamped (not a
   schema the test authored), so table-name or column drift between OGX's writer
   and Praxis's schema surfaces here.
@@ -27,7 +28,11 @@ The comparison is delegated to the shared, backend-agnostic normalizer in
 for this real round-trip (see that module's docstring for why that holds).
 """
 
+import uuid
+
 import asyncpg
+
+from ogx.cli.migrate.praxis.target import PraxisWriter
 
 from . import _compare
 
@@ -67,3 +72,108 @@ async def test_praxis_target_matches_golden(praxis_dsn: str, tenancy_mode: str):
     assert not problems, f"Praxis target tables do not match golden expected_{tenancy_mode}.json:\n" + "\n".join(
         problems
     )
+
+
+async def test_praxis_primary_key_conflicts_follow_schema(praxis_dsn: str):
+    """Responses/conversations use global IDs; item IDs and positions are owner-scoped."""
+    writer = PraxisWriter(dsn=praxis_dsn, tables=_PRAXIS_TABLES)
+    await writer.connect()
+    assert writer._conn is not None
+    conn = writer._conn
+    suffix = uuid.uuid4().hex
+    response_id = f"resp-global-{suffix}"
+    conversation_id = f"conv-global-{suffix}"
+    conversation_a_id = f"conv-item-a-{suffix}"
+    conversation_b_id = f"conv-item-b-{suffix}"
+    item_id = f"item-shared-{suffix}"
+    cross_tenant_item_id = f"item-cross-tenant-{suffix}"
+    cross_owner_position_item_id = f"item-cross-owner-position-{suffix}"
+    try:
+        await writer.write_batch(
+            "responses",
+            [
+                (response_id, "tenant-a", "owner-a", "urn:rhoai:ogx:production", 1, "gpt-4o", b"{}", b"[]", b"[]"),
+                (response_id, "tenant-b", "owner-b", "urn:rhoai:ogx:production", 2, "gpt-4o", b"{}", b"[]", b"[]"),
+            ],
+        )
+        await writer.write_batch(
+            "conversations",
+            [
+                (conversation_id, "tenant-a", "owner-a", "urn:rhoai:ogx:production", 1, "{}", "[]"),
+                (conversation_id, "tenant-b", "owner-b", "urn:rhoai:ogx:production", 2, "{}", "[]"),
+                (conversation_a_id, "tenant-a", "owner-a", "urn:rhoai:ogx:production", 3, "{}", "[]"),
+                (conversation_b_id, "tenant-b", "owner-b", "urn:rhoai:ogx:production", 4, "{}", "[]"),
+            ],
+        )
+        await writer.write_batch(
+            "items",
+            [
+                (item_id, "tenant-a", "owner-a", "urn:rhoai:ogx:production", conversation_a_id, "{}", 1, 0),
+                (item_id, "tenant-b", "owner-b", "urn:rhoai:ogx:production", conversation_b_id, "{}", 2, 0),
+                (item_id, "tenant-a", "owner-a", "urn:rhoai:ogx:production", conversation_a_id, "{}", 1, 1),
+                (
+                    cross_tenant_item_id,
+                    "tenant-b",
+                    "owner-b",
+                    "urn:rhoai:ogx:production",
+                    conversation_a_id,
+                    "{}",
+                    3,
+                    1,
+                ),
+                (
+                    cross_owner_position_item_id,
+                    "tenant-a",
+                    "owner-other",
+                    "urn:rhoai:ogx:production",
+                    conversation_a_id,
+                    "{}",
+                    4,
+                    0,
+                ),
+            ],
+        )
+
+        assert await conn.fetchval("SELECT count(*) FROM openai_responses WHERE id=$1", response_id) == 1
+        assert await conn.fetchval("SELECT tenant_id FROM openai_responses WHERE id=$1", response_id) == "tenant-a"
+        assert (
+            await conn.fetchval("SELECT count(*) FROM openai_conversations WHERE conversation_id=$1", conversation_id)
+            == 1
+        )
+        assert (
+            await conn.fetchval("SELECT tenant_id FROM openai_conversations WHERE conversation_id=$1", conversation_id)
+            == "tenant-a"
+        )
+        assert await conn.fetchval("SELECT count(*) FROM openai_conversation_items WHERE item_id=$1", item_id) == 2
+        item_scopes = await conn.fetch(
+            "SELECT tenant_id, owner_issuer, owner_subject FROM openai_conversation_items "
+            "WHERE item_id=$1 ORDER BY tenant_id",
+            item_id,
+        )
+        assert [tuple(record) for record in item_scopes] == [
+            ("tenant-a", "urn:rhoai:ogx:production", "owner-a"),
+            ("tenant-b", "urn:rhoai:ogx:production", "owner-b"),
+        ]
+        assert (
+            await conn.fetchval(
+                "SELECT count(*) FROM openai_conversation_items WHERE conversation_id=$1 AND position=$2",
+                conversation_a_id,
+                0,
+            )
+            == 2
+        )
+        assert (
+            await conn.fetchval("SELECT count(*) FROM openai_conversation_items WHERE item_id=$1", cross_tenant_item_id)
+            == 0
+        )
+    finally:
+        await conn.execute(
+            "DELETE FROM openai_conversation_items WHERE item_id = ANY($1::text[])",
+            [item_id, cross_tenant_item_id, cross_owner_position_item_id],
+        )
+        await conn.execute(
+            "DELETE FROM openai_conversations WHERE conversation_id = ANY($1::text[])",
+            [conversation_id, conversation_a_id, conversation_b_id],
+        )
+        await conn.execute("DELETE FROM openai_responses WHERE id=$1", response_id)
+        await writer.close()

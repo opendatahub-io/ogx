@@ -26,7 +26,6 @@ import argparse
 import asyncio
 import os
 import time
-from pathlib import Path
 
 import yaml
 
@@ -44,7 +43,14 @@ from .conversations import _run_conversations_phase
 from .items import _run_items_phase
 from .reader import _build_progress, _ReaderFor, _RunOptions, _SourceReader, _Stats
 from .responses import _run_responses_phase
-from .target import ItemPositionAllocator, PraxisWriter, TenantDeriver
+from .target import (
+    DEFAULT_OWNER_ISSUER,
+    ItemPositionAllocator,
+    OwnerSubjectDeriver,
+    PraxisWriter,
+    TenantDeriver,
+    validate_owner_issuer,
+)
 
 logger = get_logger(name=__name__, category="cli")
 
@@ -68,20 +74,6 @@ def _parse_tables(raw: str) -> set[str]:
     return names
 
 
-def _load_owner_map(path: str | None) -> dict[str, str] | None:
-    if not path:
-        return None
-    map_path = Path(path)
-    if not map_path.is_file():
-        raise ValueError(f"Failed to load --owner-tenant-map: {path!r} is not a file")
-    data = yaml.safe_load(map_path.read_text())
-    if not isinstance(data, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in data.items()):
-        raise ValueError(
-            f"Failed to load --owner-tenant-map {path!r}: expected a mapping of owner_principal (str) -> tenant_id (str)"
-        )
-    return data
-
-
 def _log_summary(stats: _Stats, dry_run: bool) -> None:
     logger.info(
         "Praxis migration complete",
@@ -102,7 +94,8 @@ def _log_summary(stats: _Stats, dry_run: bool) -> None:
     )
     if stats.skipped:
         logger.warning(
-            "Skipped-row manifest (transform/validation errors tolerated via --skip-errors)", count=len(stats.skipped)
+            "Skipped-row manifest (transform/validation errors encountered during dry-run)",
+            count=len(stats.skipped),
         )
         for kind, row_id, error in stats.skipped:
             logger.warning("Skipped row", kind=kind, row_id=row_id, error=error)
@@ -128,9 +121,13 @@ def _resolve_responses_store(run_config: StackConfig) -> ResponsesStoreReference
 async def _run(args: argparse.Namespace) -> None:
     if args.batch_size <= 0:
         raise ValueError("Failed to start migration: --batch-size must be a positive integer")
+    if args.continue_on_error and not args.dry_run:
+        raise ValueError("Failed to start migration: --continue-on-error requires --dry-run")
 
     tables_scope = _parse_tables(args.tables)
-    tenant = TenantDeriver(sentinel=args.tenant_sentinel, explicit_map=_load_owner_map(args.owner_tenant_map))
+    tenant = TenantDeriver(fallback_tenant=args.fallback_tenant)
+    owner_subject = OwnerSubjectDeriver(fallback_owner_subject=args.fallback_owner_subject)
+    owner_issuer = validate_owner_issuer(getattr(args, "owner_issuer", DEFAULT_OWNER_ISSUER))
     orphan_created_at = args.orphan_created_at if args.orphan_created_at is not None else int(time.time())
 
     # Bootstrap the source stack exactly as the server does (env-resolved config,
@@ -200,13 +197,23 @@ async def _run(args: argparse.Namespace) -> None:
 
     reader_for: _ReaderFor = _reader_for
 
-    opts = _RunOptions(batch_size=args.batch_size, skip_errors=args.skip_errors)
+    opts = _RunOptions(batch_size=args.batch_size, continue_on_error=args.continue_on_error)
     position_allocator = ItemPositionAllocator()
     stats = _Stats()
     try:
         with _build_progress() as progress:
             if "responses" in tables_scope and responses_ref is not None:
-                await _run_responses_phase(responses_ref, reader_for, writer, tenant, stats, progress, opts)
+                await _run_responses_phase(
+                    responses_ref,
+                    reader_for,
+                    writer,
+                    tenant,
+                    owner_subject,
+                    stats,
+                    progress,
+                    opts,
+                    owner_issuer=owner_issuer,
+                )
 
             if "conversations" in tables_scope and conversations_ref is not None:
                 await _run_conversations_phase(
@@ -216,12 +223,14 @@ async def _run(args: argparse.Namespace) -> None:
                     reader_for,
                     writer,
                     tenant,
+                    owner_subject,
                     "items" in tables_scope,
                     orphan_created_at,
                     stats,
                     progress,
                     opts,
                     position_allocator,
+                    owner_issuer=owner_issuer,
                 )
 
             if "items" in tables_scope and conversations_ref is not None:
@@ -230,10 +239,12 @@ async def _run(args: argparse.Namespace) -> None:
                     reader_for,
                     writer,
                     tenant,
+                    owner_subject,
                     stats,
                     progress,
                     opts,
                     position_allocator,
+                    owner_issuer=owner_issuer,
                 )
     finally:
         if writer is not None:
@@ -241,6 +252,8 @@ async def _run(args: argparse.Namespace) -> None:
         await shutdown_sqlstore_backends()
 
     _log_summary(stats, args.dry_run)
+    if stats.skipped:
+        raise ValueError(f"Failed to validate migration: {len(stats.skipped)} row(s) were skipped during dry-run")
 
 
 class PraxisMigrate(Subcommand):
@@ -313,16 +326,25 @@ class PraxisMigrate(Subcommand):
             help="Read + transform + validate only; no target connection and no writes.",
         )
         p.add_argument(
-            "--tenant-sentinel",
-            type=str,
-            default="default",
-            help="tenant_id for rows with an empty owner_principal; validated against the OGX tenant regex.",
-        )
-        p.add_argument(
-            "--owner-tenant-map",
+            "--fallback-tenant",
             type=str,
             default=None,
-            help="Path to a JSON/YAML mapping {owner_principal: tenant_id} that overrides derived tenant_ids.",
+            help="Fallback tenant_id for rows without a source tenant_id; optional and validated against the OGX tenant regex.",
+        )
+        p.add_argument(
+            "--fallback-owner-subject",
+            type=str,
+            default=None,
+            help=(
+                "Optional fallback owner_subject for rows without a non-empty source owner_principal; "
+                "if omitted, those rows fail validation."
+            ),
+        )
+        p.add_argument(
+            "--owner-issuer",
+            type=validate_owner_issuer,
+            default=DEFAULT_OWNER_ISSUER,
+            help="URN identifying the OGX deployment that owns the migrated Praxis state.",
         )
         p.add_argument(
             "--orphan-created-at",
@@ -331,9 +353,9 @@ class PraxisMigrate(Subcommand):
             help="created_at (unix epoch) for message-only conversation orphans. Defaults to the migration start time.",
         )
         p.add_argument(
-            "--skip-errors",
+            "--continue-on-error",
             action="store_true",
-            help="Log and continue past per-row transform/validation errors (default: fail fast); emits a skipped-row manifest.",
+            help="During --dry-run, log and continue past transform/validation errors; emits a skipped-row manifest and exits nonzero.",
         )
 
     def _run_cmd(self, args: argparse.Namespace) -> None:
