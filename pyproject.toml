@@ -34,7 +34,7 @@ constraint-dependencies = [
     "setuptools<81",                   # milvus-lite imports pkg_resources; setuptools 81+ removes it
     "starlette>=1.3.1",                # CVE-2026-48710
     "tornado>=6.5.8",
-    "urllib3>=2.7.0",                  # CVE-2026-44432: DoS via excessive decompression; CVE-2026-44431: cross-origin redirect header leak
+    "urllib3>=2.8.0",                  # CVE-2026-44432: DoS via excessive decompression; CVE-2026-44431: cross-origin redirect header leak
     "transformers>=5.0.0",              # CVE-2026-1839 fix in 5.x; ogx doesn't use Trainer
     "werkzeug>=3.1.6",                 # CVE-2025-66221 + 2 more: safe_join() device name bypass
 ]
@@ -60,11 +60,12 @@ classifiers = [
 dependencies = [
     "PyYAML>=6.0",
     "fastapi>=0.137.2,<1.0",                  # server
-    "httpx",
+    "httpx",                                  # still needed for the google-genai and generated client-SDK boundaries
+    "httpx2",
     "jinja2>=3.1.6",
     "jsonschema",
     "ogx-api",                                # API and provider specifications (local dev via tool.uv.sources)
-    "openai>=2.41.0",
+    "openai>=3.0.0",                          # 3.x is the first series built on httpx2; we pass httpx2 clients to it
     "python-dotenv>=1.2.3",                              # CVE-2026-28684: arbitrary file overwrite via symlink following
     "pyjwt[crypto]>=2.13.0",                          # Pull crypto to support RS256 for jwt. CVE-2026-48526: auth bypass via forged JWTs.
     "pydantic>=2.11.9",
