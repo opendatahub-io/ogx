@@ -60,6 +60,18 @@ REPO_ROOT = Path(__file__).parent.parent.parent.parent
 
 logger = get_logger(name=__name__, category="core::server")
 
+# APIs that administer or describe the stack itself rather than serving inference
+# traffic. Operators need them reachable to diagnose a deployment, so `apis:` cannot opt
+# out of them. (It can still list them; doing so is simply redundant.)
+ALWAYS_SERVED_APIS = ("admin", "inspect", "providers")
+
+# Built-in, user-facing APIs implied by serving `responses`: the builtin responses
+# provider hard-depends on their impls in-process (see providers/registry/responses.py),
+# and OpenAI clients on a responses deployment expect their HTTP surface. A deployment
+# that fronts responses with its own gateway drops `responses` from `apis:`, which turns
+# these off with it.
+RESPONSES_IMPLIED_APIS = ("conversations", "prompts")
+
 
 def warn_with_traceback(
     message: Warning | str,
@@ -138,10 +150,15 @@ class StackApp(FastAPI):
 def apis_to_serve(run_config: StackConfig, impls: dict[Api, Any]) -> set[str]:
     """Return the names of the APIs whose HTTP routers should be registered.
 
-    An explicit `apis:` list is authoritative, including when it is empty. Only an absent
-    list falls back to serving everything the providers give us.
+    An explicit `apis:` list is authoritative for the user-facing surface, including when
+    it is empty, except that serving `responses` implies the built-in APIs a responses
+    deployment is expected to expose. Only an absent list falls back to serving
+    everything the providers give us.
     """
     served = set(run_config.apis) if run_config.apis is not None else {api.value for api in impls}
+
+    if Api.responses.value in served:
+        served.update(RESPONSES_IMPLIED_APIS)
 
     for inf in builtin_automatically_routed_apis():
         # if we do not serve the corresponding router API, we should not serve the routing table API
@@ -149,11 +166,7 @@ def apis_to_serve(run_config: StackConfig, impls: dict[Api, Any]) -> set[str]:
             continue
         served.add(inf.routing_table_api.value)
 
-    served.add("admin")
-    served.add("inspect")
-    served.add("providers")
-    served.add("prompts")
-    served.add("conversations")
+    served.update(ALWAYS_SERVED_APIS)
     return served
 
 
@@ -187,15 +200,20 @@ async def lifespan(app: StackApp) -> AsyncIterator[None]:
 
     served_apis = apis_to_serve(app.stack.run_config, impls)
 
-    for api_str in served_apis:
+    for api_str in sorted(served_apis):
         api = Api(api_str)
-        impl = impls[api]
+        impl = impls.get(api)
+        if impl is None:
+            # `apis:` can name an API that no configured provider backs; the resolver
+            # ignores those, so there is nothing to build a router from.
+            logger.warning("Skipping API with no implementation", api=api_str)
+            continue
         router = build_fastapi_router(api, impl)
         if router:
             app.include_router(router)
             logger.debug("Registered FastAPI router", api=str(api))
 
-    logger.debug("Serving APIs", apis=list(served_apis))
+    logger.debug("Serving APIs", apis=sorted(served_apis))
 
     # Start the registry refresh background task
     app.stack.create_registry_refresh_task()
