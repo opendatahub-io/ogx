@@ -64,7 +64,7 @@ SETUP_DEFINITIONS: dict[str, Setup] = {
             "OLLAMA_URL": "http://0.0.0.0:11434/v1",
         },
         defaults={
-            "vision_model": "ollama/llama3.2-vision:11b",
+            "vision_model": "ollama/qwen3-vl:2b",
             "embedding_model": "ollama/nomic-embed-text:v1.5",
         },
     ),
