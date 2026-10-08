@@ -4117,7 +4117,7 @@ wheels = [
 
 [[package]]
 name = "ogx"
-version = "1.2.5.2+rhaiv.0"
+version = "1.2.5.2+rhaiv.1"
 source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },
@@ -4614,7 +4614,7 @@ unit = [
 
 [[package]]
 name = "ogx-api"
-version = "1.2.5.1+rhaiv.0"
+version = "1.2.5.2+rhaiv.1"
 source = { editable = "src/ogx_api" }
 dependencies = [
     { name = "fastapi" },
