@@ -74,7 +74,7 @@ dependencies = [
     "ogx-api",                                # API and provider specifications (local dev via tool.uv.sources)
     "openai>=3.0.0",                          # 3.x is the first series built on httpx2; we pass httpx2 clients to it
     "python-dotenv>=1.2.3",                              # CVE-2026-28684: arbitrary file overwrite via symlink following
-    "pyjwt[crypto]>=2.13.0",                          # Pull crypto to support RS256 for jwt. CVE-2026-48526: auth bypass via forged JWTs.
+    "pyjwt[crypto]>=2.15.1",                          # Pull crypto to support RS256 for jwt. CVE-2026-48526: auth bypass via forged JWTs.
     "pydantic>=2.11.9",
     "rich",
     "structlog>=26.1.0",
@@ -216,7 +216,7 @@ dev = [
     "ogx-client>=1.5.0",
     "openapi-spec-validator>=0.9.0",
     "pre-commit>=4.6.2",
-    "pytest>=8.4,<9.1",                        # CI/unit: 9.1.x monkeypatch.resolve() calls importlib.import_module, breaking tests that mock ogx.core.resolver.importlib.import_module (global); cap mirrored in .github/dependabot.yml
+    "pytest>=8.4",
     "pytest-asyncio>=1.4.0",
     "pytest-cov",
     "pytest-html",
