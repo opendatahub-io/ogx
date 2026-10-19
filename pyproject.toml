@@ -52,7 +52,7 @@ dependencies = [
     "opentelemetry-exporter-otlp-proto-http>=1.30.0", # server
     "aiosqlite>=0.21.0",                      # server - for metadata store
     "asyncpg",                                # for metadata store
-    "tornado>=6.5.6",
+    "tornado>=6.5.8",                        # CVE-2026-91990: DoS via memory amplification in multipart parsing
     "urllib3>=2.6.0",
 ]
 
