@@ -1,0 +1,212 @@
+# Copyright (c) The OGX Contributors.
+# All rights reserved.
+#
+# This source code is licensed under the terms described in the LICENSE file in
+# the root directory of this source tree.
+
+"""Unit tests for PraxisWriter using a fake asyncpg connection.
+
+Asserts the exact SQL (physical table name + ON CONFLICT target), positional
+tuple passthrough, and transaction wrapping without touching a real database.
+An optional idempotency integration test runs against PRAXIS_TEST_DSN when set.
+"""
+
+import os
+import uuid
+
+import pytest
+
+from ogx.cli.migrate.praxis.target import PraxisWriter
+
+_DEFAULT_TABLES = {
+    "responses": "openai_responses",
+    "conversations": "openai_conversations",
+    "items": "openai_conversation_items",
+}
+
+
+class _FakeTransaction:
+    def __init__(self, conn: "_FakeConn") -> None:
+        self._conn = conn
+
+    async def __aenter__(self) -> "_FakeTransaction":
+        self._conn.transaction_entered += 1
+        return self
+
+    async def __aexit__(self, *exc: object) -> bool:
+        self._conn.transaction_exited += 1
+        return False
+
+
+class _FakeConn:
+    def __init__(self) -> None:
+        self.executemany_calls: list[tuple[str, list]] = []
+        self.transaction_entered = 0
+        self.transaction_exited = 0
+        self.closed = False
+
+    def transaction(self) -> _FakeTransaction:
+        return _FakeTransaction(self)
+
+    async def executemany(self, sql: str, rows: list) -> None:
+        self.executemany_calls.append((sql, list(rows)))
+
+    async def close(self) -> None:
+        self.closed = True
+
+
+def _writer_with_fake_conn(tables: dict[str, str] | None = None) -> tuple[PraxisWriter, _FakeConn]:
+    writer = PraxisWriter(dsn="postgresql://unused", tables=tables or _DEFAULT_TABLES)
+    fake = _FakeConn()
+    writer._conn = fake
+    return writer, fake
+
+
+class TestSql:
+    def test_responses_sql(self):
+        writer, _ = _writer_with_fake_conn()
+        sql = writer.sql_for("responses")
+        assert "INSERT INTO openai_responses" in sql
+        assert "ON CONFLICT (id) DO NOTHING" in sql
+        assert (
+            "(id, tenant_id, owner_subject, owner_issuer, created_at, model, response_object, input, messages)" in sql
+        )
+
+    def test_conversations_sql(self):
+        writer, _ = _writer_with_fake_conn()
+        sql = writer.sql_for("conversations")
+        assert "INSERT INTO openai_conversations" in sql
+        assert "(conversation_id, tenant_id, owner_subject, owner_issuer, created_at, metadata, messages)" in sql
+        assert "ON CONFLICT (conversation_id) DO NOTHING" in sql
+
+    def test_items_sql(self):
+        writer, _ = _writer_with_fake_conn()
+        sql = writer.sql_for("items")
+        assert "INSERT INTO openai_conversation_items" in sql
+        assert (
+            "(item_id, tenant_id, owner_subject, owner_issuer, conversation_id, item_data, created_at, position)" in sql
+        )
+        assert "WHERE parent.conversation_id = $5 AND parent.tenant_id IS DISTINCT FROM $2" in sql
+        assert "ON CONFLICT (tenant_id, owner_issuer, owner_subject, item_id) DO NOTHING" in sql
+
+    def test_custom_table_names_are_bound(self):
+        writer, _ = _writer_with_fake_conn({"responses": "praxis_resp", "conversations": "c", "items": "i"})
+        assert "INSERT INTO praxis_resp" in writer.sql_for("responses")
+
+    def test_unknown_kind_rejected(self):
+        writer, _ = _writer_with_fake_conn()
+        with pytest.raises(ValueError, match="unknown target table"):
+            writer.sql_for("bogus")
+
+    def test_invalid_table_name_rejected_at_construction(self):
+        with pytest.raises(ValueError, match="Praxis table name"):
+            PraxisWriter(dsn="postgresql://unused", tables={"responses": "bad; DROP TABLE"})
+
+
+class TestWriteBatch:
+    async def test_write_batch_passes_rows_and_wraps_transaction(self):
+        writer, fake = _writer_with_fake_conn()
+        rows = [
+            ("resp_1", "t1", "owner", "urn:rhoai:ogx:production", 1, "m", b"{}", b"[]", b"[]"),
+            ("resp_2", "t1", "owner", "urn:rhoai:ogx:production", 2, "m", b"{}", b"[]", b"[]"),
+        ]
+
+        submitted = await writer.write_batch("responses", rows)
+
+        assert submitted == 2
+        assert len(fake.executemany_calls) == 1
+        sql, sent_rows = fake.executemany_calls[0]
+        assert "openai_responses" in sql
+        assert sent_rows == rows  # positional tuples passed through unchanged, in order
+        assert fake.transaction_entered == 1
+        assert fake.transaction_exited == 1
+
+    async def test_item_sql_preserves_positions_across_owner_scopes(self):
+        writer, fake = _writer_with_fake_conn()
+        issuer = "urn:rhoai:ogx:production"
+        rows = [
+            ("item_a", "tenant_a", "owner_a", issuer, "conv_1", "{}", 100, 0),
+            ("item_b", "tenant_a", "owner_b", issuer, "conv_1", "{}", 101, 0),
+        ]
+
+        submitted = await writer.write_batch("items", rows)
+
+        assert submitted == 2
+        sql, sent_rows = fake.executemany_calls[0]
+        assert "INSERT INTO openai_conversation_items" in sql
+        assert sent_rows == rows
+
+    async def test_empty_batch_is_noop(self):
+        writer, fake = _writer_with_fake_conn()
+        submitted = await writer.write_batch("responses", [])
+        assert submitted == 0
+        assert fake.executemany_calls == []
+        assert fake.transaction_entered == 0
+
+    async def test_write_batch_without_connection_raises(self):
+        writer = PraxisWriter(dsn="postgresql://unused", tables=_DEFAULT_TABLES)
+        with pytest.raises(RuntimeError, match="not connected"):
+            await writer.write_batch("responses", [("resp_1", "t1", 1, "m", "{}", "[]", "[]")])
+
+
+@pytest.mark.skipif(not os.environ.get("PRAXIS_TEST_DSN"), reason="PRAXIS_TEST_DSN not set")
+class TestIdempotencyIntegration:
+    """Runs against a throwaway Postgres with Praxis's DDL already applied."""
+
+    async def test_double_write_is_idempotent(self):
+        dsn = os.environ["PRAXIS_TEST_DSN"]
+        writer = PraxisWriter(dsn=dsn, tables=_DEFAULT_TABLES)
+        await writer.connect()
+        try:
+            tenant_id = f"migration-test-{uuid.uuid4().hex}"
+            response_id = f"resp-{uuid.uuid4().hex}"
+            row = (response_id, tenant_id, "owner", "urn:rhoai:ogx:production", 1, "gpt-4o", b"{}", b"[]", b"[]")
+            await writer.write_batch("responses", [row])
+            await writer.write_batch("responses", [row])  # ON CONFLICT DO NOTHING
+            count = await writer._conn.fetchval(
+                "SELECT count(*) FROM openai_responses WHERE tenant_id=$1 AND id=$2", tenant_id, response_id
+            )
+            assert count == 1
+        finally:
+            await writer._conn.execute(
+                "DELETE FROM openai_responses WHERE tenant_id=$1 AND id=$2", tenant_id, response_id
+            )
+            await writer.close()
+
+    async def test_item_positions_may_repeat_across_owner_scopes(self):
+        dsn = os.environ["PRAXIS_TEST_DSN"]
+        writer = PraxisWriter(dsn=dsn, tables=_DEFAULT_TABLES)
+        await writer.connect()
+        tenant_id = f"migration-test-{uuid.uuid4().hex}"
+        conversation_id = f"conversation-{uuid.uuid4().hex}"
+        issuer = "urn:rhoai:ogx:production"
+        try:
+            await writer.write_batch(
+                "conversations",
+                [(conversation_id, tenant_id, "owner_a", issuer, 100, "{}", "[]")],
+            )
+            items = [
+                ("item_a", tenant_id, "owner_a", issuer, conversation_id, "{}", 100, 0),
+                ("item_b", tenant_id, "owner_b", issuer, conversation_id, "{}", 101, 0),
+            ]
+            await writer.write_batch("items", items)
+
+            count = await writer._conn.fetchval(
+                "SELECT count(*) FROM openai_conversation_items "
+                "WHERE tenant_id=$1 AND conversation_id=$2 AND position=$3",
+                tenant_id,
+                conversation_id,
+                0,
+            )
+            assert count == 2
+        finally:
+            await writer._conn.execute(
+                "DELETE FROM openai_conversation_items WHERE tenant_id=$1 AND conversation_id=$2",
+                tenant_id,
+                conversation_id,
+            )
+            await writer._conn.execute(
+                "DELETE FROM openai_conversations WHERE conversation_id=$1",
+                conversation_id,
+            )
+            await writer.close()
