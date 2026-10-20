@@ -110,7 +110,23 @@ jobs:
             exit 0
           fi
 
-          git cherry-pick --no-commit --empty=drop "${migration_commits[@]}"
+          for commit in "${migration_commits[@]}"; do
+            if ! git cherry-pick --no-commit --empty=drop "${commit}"; then
+              mapfile -t conflicted_paths < <(git diff --name-only --diff-filter=U)
+              if (( ${#conflicted_paths[@]} != 1 )) || [[ "${conflicted_paths[0]}" != ".github/workflows/README.md" ]]; then
+                echo "::error::Failed to cherry-pick ${commit}; only .github/workflows/README.md conflicts can be resolved automatically."
+                exit 1
+              fi
+            fi
+
+            # Hack: keep the release branch's .github/workflows/README.md; migration commits may change this conflict-prone file.
+            if git cat-file -e "HEAD:.github/workflows/README.md" 2>/dev/null; then
+              git restore --source=HEAD --staged --worktree -- .github/workflows/README.md
+            else
+              git rm --force --ignore-unmatch -- .github/workflows/README.md
+            fi
+          done
+
           git add --all
           if git diff --cached --quiet; then
             echo "Migration commits are already applied, skipping commit"
