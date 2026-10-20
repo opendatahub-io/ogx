@@ -102,7 +102,8 @@ jobs:
             git log --reverse --no-merges --format='%H' \
               "tags/${TAG}"..origin/main -- \
               src/ogx/cli/migrate \
-              tests/integration/migration
+              tests/integration/migration \
+              tests/unit/cli/migrate
           )
 
           if (( ${#migration_commits[@]} == 0 )); then
