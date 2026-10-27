@@ -8,7 +8,7 @@
     "endpoint": "/v1/models",
     "model": "",
     "provider_metadata": {
-      "openai_sdk_version": "3.17.0"
+      "openai_sdk_version": "3.31.0"
     }
   },
   "response": {
@@ -135,7 +135,7 @@
           },
           "lifecycle_status": "generally-available",
           "deprecation": {
-            "inference": 1797292800
+            "inference": 1803600000
           },
           "created_at": "1970-01-01T00:00:00.000000Z"
         }
@@ -746,7 +746,7 @@
             "global_fine_tune": false,
             "devtier_fine_tune": false
           },
-          "lifecycle_status": "preview",
+          "lifecycle_status": "deprecating",
           "deprecation": {
             "inference": 1789171200
           },
@@ -774,7 +774,7 @@
           "lifecycle_status": "generally-available",
           "deprecation": {
             "fine_tune": 1792022400,
-            "inference": 1798675200
+            "inference": 1803600000
           },
           "created_at": "1970-01-01T00:00:00.000000Z"
         }
@@ -800,7 +800,7 @@
           "lifecycle_status": "generally-available",
           "deprecation": {
             "fine_tune": 1792022400,
-            "inference": 1792022400
+            "inference": 1800403200
           },
           "created_at": "1970-01-01T00:00:00.000000Z"
         }
@@ -826,7 +826,7 @@
           "lifecycle_status": "preview",
           "deprecation": {
             "fine_tune": 1792022400,
-            "inference": 1792022400
+            "inference": 1800403200
           },
           "created_at": "1970-01-01T00:00:00.000000Z"
         }
@@ -2217,7 +2217,7 @@
             "chat_completion": true,
             "embeddings": false,
             "global_fine_tune": true,
-            "devtier_fine_tune": false
+            "devtier_fine_tune": true
           },
           "lifecycle_status": "deprecating",
           "deprecation": {
@@ -3335,9 +3335,9 @@
             "global_fine_tune": false,
             "devtier_fine_tune": false
           },
-          "lifecycle_status": "preview",
+          "lifecycle_status": "deprecated",
           "deprecation": {
-            "inference": 1792022400
+            "inference": 1793577600
           },
           "created_at": "1970-01-01T00:00:00.000000Z"
         }
@@ -3437,7 +3437,7 @@
           },
           "lifecycle_status": "preview",
           "deprecation": {
-            "inference": 1791158400
+            "inference": 1794873600
           },
           "created_at": "1970-01-01T00:00:00.000000Z"
         }
@@ -3462,7 +3462,7 @@
           },
           "lifecycle_status": "preview",
           "deprecation": {
-            "inference": 1793404800
+            "inference": 1800403200
           },
           "created_at": "1970-01-01T00:00:00.000000Z"
         }
@@ -3487,7 +3487,7 @@
           },
           "lifecycle_status": "generally-available",
           "deprecation": {
-            "inference": 1809561600
+            "inference": 1825718400
           },
           "created_at": "1970-01-01T00:00:00.000000Z"
         }
@@ -3537,7 +3537,7 @@
           },
           "lifecycle_status": "preview",
           "deprecation": {
-            "inference": 1793145600
+            "inference": 1796688000
           },
           "created_at": "1970-01-01T00:00:00.000000Z"
         }
@@ -3638,7 +3638,7 @@
           },
           "lifecycle_status": "preview",
           "deprecation": {
-            "inference": 1791158400
+            "inference": 1794873600
           },
           "created_at": "1970-01-01T00:00:00.000000Z"
         }
@@ -3864,7 +3864,7 @@
           },
           "lifecycle_status": "preview",
           "deprecation": {
-            "inference": 1796169600
+            "inference": 1799712000
           },
           "created_at": "1970-01-01T00:00:00.000000Z"
         }
@@ -4022,6 +4022,81 @@
       {
         "__type__": "openai.types.model.Model",
         "__data__": {
+          "id": "gpt-chat-latest-2026-10-07",
+          "created": 0,
+          "object": "model",
+          "owned_by": "openai",
+          "shutdown_date": null,
+          "status": "succeeded",
+          "capabilities": {
+            "fine_tune": false,
+            "inference": true,
+            "completion": false,
+            "chat_completion": true,
+            "embeddings": false,
+            "global_fine_tune": false,
+            "devtier_fine_tune": false
+          },
+          "lifecycle_status": "preview",
+          "deprecation": {
+            "inference": 1801526400
+          },
+          "created_at": "1970-01-01T00:00:00.000000Z"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "gpt-image-2.5-flare-2026-09-08",
+          "created": 0,
+          "object": "model",
+          "owned_by": "openai",
+          "shutdown_date": null,
+          "status": "succeeded",
+          "capabilities": {
+            "fine_tune": false,
+            "inference": true,
+            "completion": false,
+            "chat_completion": false,
+            "embeddings": false,
+            "global_fine_tune": false,
+            "devtier_fine_tune": false
+          },
+          "lifecycle_status": "generally-available",
+          "deprecation": {
+            "inference": 1820361600
+          },
+          "created_at": "1970-01-01T00:00:00.000000Z"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "gpt-6.1-terra-2026-10-26",
+          "created": 0,
+          "object": "model",
+          "owned_by": "openai",
+          "shutdown_date": null,
+          "status": "succeeded",
+          "capabilities": {
+            "fine_tune": false,
+            "inference": true,
+            "completion": false,
+            "chat_completion": true,
+            "embeddings": false,
+            "global_fine_tune": false,
+            "devtier_fine_tune": false
+          },
+          "lifecycle_status": "generally-available",
+          "deprecation": {
+            "inference": 1824508800
+          },
+          "created_at": "1970-01-01T00:00:00.000000Z"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
           "id": "dall-e-3",
           "created": 0,
           "object": "model",
@@ -4089,7 +4164,7 @@
           },
           "lifecycle_status": "generally-available",
           "deprecation": {
-            "inference": 1797292800
+            "inference": 1803600000
           },
           "created_at": "1970-01-01T00:00:00.000000Z"
         }
@@ -4320,7 +4395,7 @@
           "lifecycle_status": "generally-available",
           "deprecation": {
             "fine_tune": 1792022400,
-            "inference": 1798675200
+            "inference": 1803600000
           },
           "created_at": "1970-01-01T00:00:00.000000Z"
         }
@@ -4633,6 +4708,31 @@
       {
         "__type__": "openai.types.model.Model",
         "__data__": {
+          "id": "codex-mini",
+          "created": 0,
+          "object": "model",
+          "owned_by": "openai",
+          "shutdown_date": null,
+          "status": "succeeded",
+          "capabilities": {
+            "fine_tune": false,
+            "inference": true,
+            "completion": false,
+            "chat_completion": false,
+            "embeddings": false,
+            "global_fine_tune": false,
+            "devtier_fine_tune": false
+          },
+          "lifecycle_status": "deprecating",
+          "deprecation": {
+            "inference": 1794700800
+          },
+          "created_at": "1970-01-01T00:00:00.000000Z"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
           "id": "aoai-sora",
           "created": 0,
           "object": "model",
@@ -4696,7 +4796,7 @@
             "chat_completion": true,
             "embeddings": false,
             "global_fine_tune": true,
-            "devtier_fine_tune": false
+            "devtier_fine_tune": true
           },
           "lifecycle_status": "deprecating",
           "deprecation": {
@@ -4964,6 +5064,31 @@
       {
         "__type__": "openai.types.model.Model",
         "__data__": {
+          "id": "gpt-5-codex",
+          "created": 0,
+          "object": "model",
+          "owned_by": "openai",
+          "shutdown_date": null,
+          "status": "succeeded",
+          "capabilities": {
+            "fine_tune": false,
+            "inference": true,
+            "completion": false,
+            "chat_completion": false,
+            "embeddings": false,
+            "global_fine_tune": false,
+            "devtier_fine_tune": false
+          },
+          "lifecycle_status": "generally-available",
+          "deprecation": {
+            "inference": 1805241600
+          },
+          "created_at": "1970-01-01T00:00:00.000000Z"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
           "id": "gpt-5-chat",
           "created": 0,
           "object": "model",
@@ -5060,6 +5185,56 @@
           "deprecation": {
             "fine_tune": 1778630400,
             "inference": 1782691200
+          },
+          "created_at": "1970-01-01T00:00:00.000000Z"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "gpt-5.1-codex-mini",
+          "created": 0,
+          "object": "model",
+          "owned_by": "openai",
+          "shutdown_date": null,
+          "status": "succeeded",
+          "capabilities": {
+            "fine_tune": false,
+            "inference": true,
+            "completion": false,
+            "chat_completion": false,
+            "embeddings": false,
+            "global_fine_tune": false,
+            "devtier_fine_tune": false
+          },
+          "lifecycle_status": "generally-available",
+          "deprecation": {
+            "inference": 1810339200
+          },
+          "created_at": "1970-01-01T00:00:00.000000Z"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "gpt-5.1-codex",
+          "created": 0,
+          "object": "model",
+          "owned_by": "openai",
+          "shutdown_date": null,
+          "status": "succeeded",
+          "capabilities": {
+            "fine_tune": false,
+            "inference": true,
+            "completion": false,
+            "chat_completion": false,
+            "embeddings": false,
+            "global_fine_tune": false,
+            "devtier_fine_tune": false
+          },
+          "lifecycle_status": "generally-available",
+          "deprecation": {
+            "inference": 1810339200
           },
           "created_at": "1970-01-01T00:00:00.000000Z"
         }
@@ -5487,9 +5662,9 @@
             "global_fine_tune": false,
             "devtier_fine_tune": false
           },
-          "lifecycle_status": "preview",
+          "lifecycle_status": "deprecated",
           "deprecation": {
-            "inference": 1792022400
+            "inference": 1793577600
           },
           "created_at": "1970-01-01T00:00:00.000000Z"
         }
@@ -5564,7 +5739,32 @@
           },
           "lifecycle_status": "preview",
           "deprecation": {
-            "inference": 1793404800
+            "inference": 1800403200
+          },
+          "created_at": "1970-01-01T00:00:00.000000Z"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "gpt-realtime-translate",
+          "created": 0,
+          "object": "model",
+          "owned_by": "openai",
+          "shutdown_date": null,
+          "status": "succeeded",
+          "capabilities": {
+            "fine_tune": false,
+            "inference": true,
+            "completion": false,
+            "chat_completion": false,
+            "embeddings": false,
+            "global_fine_tune": false,
+            "devtier_fine_tune": false
+          },
+          "lifecycle_status": "generally-available",
+          "deprecation": {
+            "inference": 1825718400
           },
           "created_at": "1970-01-01T00:00:00.000000Z"
         }
@@ -5641,31 +5841,6 @@
           "lifecycle_status": "generally-available",
           "deprecation": {
             "inference": 1816992000
-          },
-          "created_at": "1970-01-01T00:00:00.000000Z"
-        }
-      },
-      {
-        "__type__": "openai.types.model.Model",
-        "__data__": {
-          "id": "gpt-chat-latest",
-          "created": 0,
-          "object": "model",
-          "owned_by": "openai",
-          "shutdown_date": null,
-          "status": "succeeded",
-          "capabilities": {
-            "fine_tune": false,
-            "inference": true,
-            "completion": false,
-            "chat_completion": true,
-            "embeddings": false,
-            "global_fine_tune": false,
-            "devtier_fine_tune": false
-          },
-          "lifecycle_status": "preview",
-          "deprecation": {
-            "inference": 1791158400
           },
           "created_at": "1970-01-01T00:00:00.000000Z"
         }
@@ -5941,6 +6116,81 @@
           "lifecycle_status": "generally-available",
           "deprecation": {
             "inference": 1836345600
+          },
+          "created_at": "1970-01-01T00:00:00.000000Z"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "gpt-chat-latest",
+          "created": 0,
+          "object": "model",
+          "owned_by": "openai",
+          "shutdown_date": null,
+          "status": "succeeded",
+          "capabilities": {
+            "fine_tune": false,
+            "inference": true,
+            "completion": false,
+            "chat_completion": true,
+            "embeddings": false,
+            "global_fine_tune": false,
+            "devtier_fine_tune": false
+          },
+          "lifecycle_status": "preview",
+          "deprecation": {
+            "inference": 1801526400
+          },
+          "created_at": "1970-01-01T00:00:00.000000Z"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "gpt-image-2.5-flare",
+          "created": 0,
+          "object": "model",
+          "owned_by": "openai",
+          "shutdown_date": null,
+          "status": "succeeded",
+          "capabilities": {
+            "fine_tune": false,
+            "inference": true,
+            "completion": false,
+            "chat_completion": false,
+            "embeddings": false,
+            "global_fine_tune": false,
+            "devtier_fine_tune": false
+          },
+          "lifecycle_status": "generally-available",
+          "deprecation": {
+            "inference": 1820361600
+          },
+          "created_at": "1970-01-01T00:00:00.000000Z"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "gpt-6.1-terra",
+          "created": 0,
+          "object": "model",
+          "owned_by": "openai",
+          "shutdown_date": null,
+          "status": "succeeded",
+          "capabilities": {
+            "fine_tune": false,
+            "inference": true,
+            "completion": false,
+            "chat_completion": true,
+            "embeddings": false,
+            "global_fine_tune": false,
+            "devtier_fine_tune": false
+          },
+          "lifecycle_status": "generally-available",
+          "deprecation": {
+            "inference": 1824508800
           },
           "created_at": "1970-01-01T00:00:00.000000Z"
         }
