@@ -110,6 +110,8 @@ def test_response_non_streaming_file_search(
         model=text_model_id,
         input=case.input,
         tools=tools,
+        # Force the tool call so the test validates file search mechanics, not model judgment.
+        tool_choice="required",
         stream=False,
         include=["file_search_call.results"],
     )
@@ -140,6 +142,8 @@ def test_response_non_streaming_file_search_empty_vector_store(
         model=text_model_id,
         input="How many experts does the Llama 4 Maverick model have?",
         tools=[{"type": "file_search", "vector_store_ids": [vector_store.id]}],
+        # Force the tool call so the test validates file search mechanics, not model judgment.
+        tool_choice="required",
         stream=False,
         include=["file_search_call.results"],
     )
@@ -188,6 +192,8 @@ def test_response_sequential_file_search(
         model=text_model_id,
         input="How many experts does the Llama 4 Maverick model have?",
         tools=tools,
+        # Force the tool call so the test validates sequential file search, not model judgment.
+        tool_choice="required",
         stream=False,
         include=["file_search_call.results"],
     )
@@ -259,7 +265,7 @@ def test_response_non_streaming_mcp_tool(responses_client, client_with_models, t
         # sometimes the model will call the tool again, so we need to get the last message
         message = response.output[-1]
         text_content = message.content[0].text
-        assert_text_contains(text_content, "boiling point")
+        assert_text_contains(text_content, "-100")
 
     with make_mcp_server(required_auth_token="test-token") as mcp_server_info:
         tools = setup_mcp_tools(case.tools, mcp_server_info)
@@ -399,7 +405,7 @@ def test_response_connector_resolution_mcp_tool(responses_client, client_with_mo
 
         message = response.output[-1]
         text_content = message.content[0].text
-        assert_text_contains(text_content, "boiling point")
+        assert_text_contains(text_content, "-100")
 
 
 @pytest.mark.parametrize("case", mcp_tool_test_cases)
@@ -471,7 +477,7 @@ def test_response_mcp_tool_approval(responses_client, client_with_models, text_m
             # sometimes the model will call the tool again, so we need to get the last message
             message = response.output[-1]
             text_content = message.content[0].text
-            assert_text_contains(text_content, "boiling point")
+            assert_text_contains(text_content, "-100")
         else:
             assert len(response.output) >= 1
             for output in response.output:
@@ -745,6 +751,10 @@ def test_function_call_output_list_image(responses_client, client_with_models, v
         model=vision_model_id,
         input=inputs,
         tools=tools,
+        # The model may want to call the tool again; force a message so the
+        # test validates the list-form function_call_output round-trip, not
+        # the model's decision to stop calling tools.
+        tool_choice="none",
         stream=False,
         previous_response_id=response.id,
     )
