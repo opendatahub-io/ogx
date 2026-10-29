@@ -17,7 +17,7 @@ These jobs come from the `default` section of `ci_matrix.json`. They all run in 
 | `responses` | `gpt` | `responses` only; Responses coverage: 117/131 (89%) |
 | `responses` | `azure` | `responses` only; Responses coverage: 112/131 (85%) |
 | `reasoning` | `gpt` | 4 roots; Responses coverage: 117/131 (89%) |
-| `bedrock-responses` | `bedrock` | 6 roots; Responses coverage: 22/131 (17%) |
+| `responses` | `bedrock` | `responses` only; Responses coverage: 22/131 (17%) |
 | `inference` | `vllm` | `inference` only |
 | `inference` | `sglang` | `inference` only |
 | `reasoning` | `vllm` | 4 roots; Responses coverage: 3/131 (2%) |
@@ -30,7 +30,6 @@ These jobs come from the `default` section of `ci_matrix.json`. They all run in 
 | `messages` | `meta` | `messages` only |
 | `messages` | `deepseek` | `messages` only |
 | `interactions` | `gemini` | `interactions` only |
-| `base` | `fireworks` |  |
 | `inference` | `llama-cpp-server` | `inference` only |
 | `text-embeddings-inference` | `text-embeddings-inference` | `test_openai_embeddings.py` only |
 | `systemone` | `typesafe` | server client only; `test_systemone.py` only |
@@ -45,9 +44,9 @@ These jobs come from the `default` section of `ci_matrix.json`. They all run in 
 |-------|------------|--------------|-----------------|--------------|------------|--------------|
 | `anthropic` | anthropic/claude-haiku-5-5 | — | — | — | `messages` | — |
 | `azure` | azure/gpt-4o | azure/gpt-4o | sentence-transformers/nomic-ai/nomic-embed-text-v1.5 | — | `responses` | — |
-| `bedrock` | bedrock/openai.gpt-oss-20b-1:0 | — | sentence-transformers/nomic-ai/nomic-embed-text-v1.5 | — | `bedrock`, `bedrock-responses` | — |
+| `bedrock` | bedrock/openai.gpt-oss-20b-1:0 | — | sentence-transformers/nomic-ai/nomic-embed-text-v1.5 | — | `bedrock`, `responses` | — |
 | `deepseek` | deepseek/deepseek-chat | — | — | — | `messages` | — |
-| `fireworks` | fireworks/accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b | — | sentence-transformers/nomic-ai/nomic-embed-text-v1.5 | — | `messages`, `base` | — |
+| `fireworks` | fireworks/accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b | — | sentence-transformers/nomic-ai/nomic-embed-text-v1.5 | — | `messages` | — |
 | `gemini` | gemini/gemini-2.5-flash-lite | — | gemini/text-embedding-004 | — | `interactions` | — |
 | `gpt` | openai/gpt-5-nano | openai/gpt-5-nano | openai/text-embedding-3-small | — | `responses`, `reasoning`, `messages` | — |
 | `llama-cpp-server` | llama-cpp-server/qwen3-0.6b | — | llama-cpp-server/nomic-embed-text-v1.5 | — | `inference` | — |

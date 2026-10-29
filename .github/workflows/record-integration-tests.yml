@@ -267,11 +267,9 @@ jobs:
           - setup: bedrock
             suite: bedrock
           - setup: bedrock
-            suite: bedrock-responses
+            suite: responses
           - setup: gemini
             suite: interactions
-          - setup: fireworks
-            suite: base
           - setup: vllm
             suite: messages
           - setup: fireworks
