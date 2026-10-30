@@ -14,11 +14,11 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, NoReturn
-from urllib.parse import urlsplit, urlunsplit
 
 from openai import APIConnectionError, APIStatusError, APITimeoutError, OpenAI
 from termcolor import cprint
 
+from ogx.cli.connect.tls import is_untrusted_certificate_error, untrusted_certificate_client
 from ogx.cli.subcommand import Subcommand
 from ogx.log import get_logger
 
@@ -44,30 +44,38 @@ class CodexServerDiscovery:
     def __init__(self, *, timeout_seconds: float) -> None:
         self.timeout_seconds = timeout_seconds
 
-    def normalize_base_url(self, raw_base_url: str) -> str:
-        base_url = raw_base_url.strip()
-        parsed = urlsplit(base_url)
-        if not parsed.scheme or not parsed.netloc:
-            _exit_with_error(
-                f"Failed to parse OGX base URL '{raw_base_url}'.\n"
-                "Provide a full OpenAI-compatible API base URL such as "
-                "http://localhost:8321/v1 or https://ogx.example.com/v1."
-            )
-        if not parsed.path.rstrip("/").endswith("/v1"):
-            _exit_with_error(
-                f"Failed to parse OGX base URL '{raw_base_url}'.\nInclude the OpenAI-compatible API path, such as /v1."
-            )
-
-        return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, parsed.query, ""))
-
-    def fetch_models(self, base_url: str) -> list[DiscoveredCodexModel]:
+    def fetch_models(self, base_url: str, insecure: bool) -> tuple[list[DiscoveredCodexModel], bool]:
+        """Fetch discovered models. Returns (models, self_signed_certificate)."""
         default_headers = self.build_request_headers()
-        client = OpenAI(
-            base_url=base_url,
-            api_key=os.getenv("OGX_API_KEY", "unused"),
-            timeout=self.timeout_seconds,
-            default_headers=default_headers or None,
-        )
+        try:
+            return self._list_models(base_url, default_headers, verify=True), False
+        except APIConnectionError as e:
+            if insecure and is_untrusted_certificate_error(e):
+                # The user approved skipping verification with --insecure.
+                try:
+                    return self._list_models(base_url, default_headers, verify=False), True
+                except APIConnectionError:
+                    pass
+            if is_untrusted_certificate_error(e):
+                _exit_with_error(
+                    f"Failed to connect to OGX server at {base_url}: its TLS certificate is not trusted.\n"
+                    "Add the certificate to your system trust store, or re-run with 'ogx connect --insecure' "
+                    "to skip certificate verification for this invocation."
+                )
+            _exit_with_error(f"Failed to connect to OGX server at {base_url}\nStart the server first with: ogx go")
+
+    def _list_models(
+        self, base_url: str, default_headers: dict[str, str], *, verify: bool
+    ) -> list[DiscoveredCodexModel]:
+        client_kwargs: dict[str, Any] = {
+            "base_url": base_url,
+            "api_key": os.getenv("OGX_API_KEY", "unused"),
+            "timeout": self.timeout_seconds,
+            "default_headers": default_headers or None,
+        }
+        if not verify:
+            client_kwargs["http_client"] = untrusted_certificate_client()
+        client = OpenAI(**client_kwargs)
         try:
             response = client.models.list()
         except APITimeoutError:
@@ -76,9 +84,7 @@ class CodexServerDiscovery:
                 f"Timed out while querying available models after {self.timeout_seconds} seconds."
             )
         except APIConnectionError:
-            _exit_with_error(
-                f"Failed to connect to OGX server at {base_url}\nStart the server first with: ogx run <config>"
-            )
+            raise
         except APIStatusError as e:
             _exit_with_error(f"Failed to query models from OGX server at {base_url} (HTTP {e.status_code})")
 
@@ -316,7 +322,6 @@ class ConnectCodex(Subcommand):
     """Connect Codex to the running OGX server."""
 
     MODEL_DISCOVERY_TIMEOUT_SECONDS = 20
-    DEFAULT_BASE_URL = "http://localhost:8321/v1"
 
     def __init__(self, subparsers: argparse._SubParsersAction) -> None:
         super().__init__()
@@ -339,12 +344,6 @@ class ConnectCodex(Subcommand):
             help="Default model ID. If omitted, the first available model is used.",
         )
         self.parser.add_argument(
-            "--url",
-            type=str,
-            default=None,
-            help="OGX OpenAI-compatible API base URL, including /v1. Prefer the group-level 'ogx connect --url' flag.",
-        )
-        self.parser.add_argument(
             "--exec",
             dest="exec_prompt",
             type=str,
@@ -352,21 +351,19 @@ class ConnectCodex(Subcommand):
             help="Run Codex non-interactively with the provided prompt.",
         )
 
-    @staticmethod
-    def _resolve_base_url(args: argparse.Namespace) -> str:
-        # Group-level --url (dest=connect_url) > per-agent --url > OGX_BASE_URL > localhost default.
-        # getattr: per-agent unit-test namespaces are built without the group parser.
-        return (
-            getattr(args, "connect_url", None) or args.url or os.getenv("OGX_BASE_URL", ConnectCodex.DEFAULT_BASE_URL)
-        )
-
     def _run_connect_codex_cmd(self, args: argparse.Namespace) -> None:
         if not shutil.which("codex"):
             _exit_with_error("Failed to find 'codex' in PATH. Install it from https://github.com/openai/codex")
 
-        base_url = self.discovery.normalize_base_url(self._resolve_base_url(args))
+        # The connect group resolves and validates the server URL into args.connect_url.
+        base_url = args.connect_url
 
-        models = self.discovery.fetch_models(base_url)
+        models, self_signed = self.discovery.fetch_models(base_url, args.insecure)
+        if self_signed:
+            _exit_with_error(
+                "Codex cannot connect to a server with a self-signed certificate. Add the certificate to your "
+                "system trust store, or restart the server with: ogx go --insecure --no-auth"
+            )
         if not models:
             _exit_with_error("Failed to find any LLM models on the OGX server.")
 
