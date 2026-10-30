@@ -50,7 +50,7 @@ dependencies = [
     "starlette>=1.3.1",                       # CVE-2026-54283, CVE-2026-48710: form() DoS
     "termcolor",
     "tiktoken",
-    "pillow>=12.2.0",
+    "pillow>=13.0.0",                  # CVE-2026-112893 + 59 related Pillow CVEs fixed in 13.0.0
     "h11>=0.16.0",
     "python-multipart>=0.0.20",               # For fastapi Form
     "uvicorn>=0.34.0",                        # server
