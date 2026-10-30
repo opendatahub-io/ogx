@@ -10,6 +10,7 @@ required-version = ">=0.7.0"
 constraint-dependencies = [
     "aiohttp>=3.14.0",                # CVE-2026-34993: CookieJar.load() RCE
     "authlib>=1.6.11",                 # CVE-2026-41425 + 7 more: account takeover, JWE padding oracle, sig bypass
+    "certifi>=2026.10.19",            # CVE-2026-114406: eMudhra intermediate CA key compromise
     "cryptography>=48.0.1",            # CVE-2026-39892: buffer overflow; CVE-2026-34073: DNS constraint bypass
     "fonttools>=4.60.2",
     "gitpython>=3.1.47",               # Command injection via Git options bypass
@@ -35,6 +36,9 @@ constraint-dependencies = [
     "urllib3>=2.7.0",                  # CVE-2026-44432: DoS via excessive decompression; CVE-2026-44431: cross-origin redirect header leak
     "transformers>=4.57.2,<5.0.0",     # CVE-2026-1839 fix only in 5.x; ogx doesn't use Trainer; 5.x breaks HybridCache imports
     "werkzeug>=3.1.6",                 # CVE-2025-66221 + 2 more: safe_join() device name bypass
+]
+override-dependencies = [
+    "grpcio>=1.84.1",                 # CVE-2026-114406: updated roots.pem removes compromised eMudhra CAs (override weaviate-client's <1.80.0 cap)
 ]
 
 [project]

@@ -5,6 +5,8 @@ build-backend = "setuptools.build_meta"
 [tool.uv]
 required-version = ">=0.7.0"
 constraint-dependencies = [
+    "certifi>=2026.10.19",            # CVE-2026-114406: eMudhra intermediate CA key compromise
+    "grpcio>=1.84.1",                 # CVE-2026-114406: updated roots.pem removes compromised eMudhra CAs
     "idna>=3.15",
     "protobuf>=6.33.5",                # CVE-2026-0994: JSON recursion depth bypass
     "requests>=2.33.0",                # CVE-2026-25645: insecure temp file reuse in extract_zipped_paths()
