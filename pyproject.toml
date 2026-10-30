@@ -11,6 +11,7 @@ constraint-dependencies = [
     "certifi>=2026.10.23",            # CVE-2026-114406: removes distrusted eMudhra CAs
     "pyasn1>=0.6.4",  # CVE-2026-30922: DoS via unbounded recursion
     "starlette>=1.3.1",                # CVE-2026-48710, CVE-2026-54283: form() DoS
+    "pillow>=13.0.0",  # CVE-2026-112893 + 59 related Pillow CVEs fixed in 13.0.0
 ]
 override-dependencies = [
     "grpcio>=1.84.1",                 # CVE-2026-114406: updated roots.pem removes distrusted eMudhra CAs (override weaviate-client's <1.80.0 cap)
@@ -106,7 +107,7 @@ starter = [
     "opentelemetry-exporter-otlp-proto-http",
     "opentelemetry-sdk",
     "pandas",
-    "pillow>=12.3.0",                                 # CVE-2026-42311: PSD RCE; CVE-2026-55379/55380/54060: font/GD DoS
+    "pillow>=13.0.0",                                 # CVE-2026-112893 + 59 related Pillow CVEs fixed in 13.0.0
     "psycopg2-binary",
     "pymilvus[milvus-lite]>=2.4.10",
     "pymongo>=4.18.1",                         # CVE-2026-88029: query-operator injection
