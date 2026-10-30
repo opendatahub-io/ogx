@@ -4,10 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [tool.uv]
 required-version = ">=0.7.0"
+constraint-dependencies = [
+    "certifi>=2026.10.23",            # CVE-2026-114406: removes distrusted eMudhra CAs
+]
+override-dependencies = [
+    "grpcio>=1.84.1",                 # CVE-2026-114406: updated roots.pem removes distrusted eMudhra CAs (override weaviate-client's <1.80.0 cap)
+]
 
 [project]
 name = "llama_stack"
-version = "0.2.22.7+rhai0"
+version = "0.2.22.8+rhai0"
 authors = [{ name = "Meta Llama", email = "llama-oss@meta.com" }]
 description = "Llama Stack"
 readme = "README.md"
