@@ -4,6 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [tool.uv]
 required-version = ">=0.7.0"
+constraint-dependencies = [
+    "certifi>=2026.10.23",            # CVE-2026-114406: removes distrusted eMudhra CAs
+]
 
 [project]
 name = "llama-stack-api"
