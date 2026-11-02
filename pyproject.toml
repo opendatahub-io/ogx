@@ -33,7 +33,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Information Analysis",
 ]
 dependencies = [
-    "aiohttp>=3.14.3",                        # CVE-2026-69244/69243: parser DoS, request smuggling
+    "aiohttp>=3.14.4",                        # CVE-2026-69244/69243: parser DoS, request smuggling
     "anyio>=4.14.2",                          # CVE-2026-63374 (transitive via httpx and others)
     "fastapi>=0.115.0,<1.0",                  # server
     "fire",                                   # for MCP in LLS client
@@ -99,7 +99,7 @@ unit = [
     "aiohttp",
     "psycopg2-binary>=2.9.0",
     "pypdf>=6.18.0",
-    "mcp",
+    "mcp>=1.30.0,<2.0",
     "chardet",
     "qdrant-client",
     "sqlalchemy",
@@ -126,7 +126,7 @@ test = [
     "chardet",
     "psycopg2-binary>=2.9.0",
     "pypdf>=6.18.0",
-    "mcp",
+    "mcp>=1.30.0,<2.0",
     "datasets>=4.0.0",
     "autoevals",
     "transformers",

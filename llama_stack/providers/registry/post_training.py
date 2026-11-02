@@ -61,7 +61,7 @@ def available_providers() -> list[ProviderSpec]:
             api=Api.post_training,
             adapter=AdapterSpec(
                 adapter_type="nvidia",
-                pip_packages=["requests", "aiohttp"],
+                pip_packages=["requests", "aiohttp>=3.14.4"],
                 module="llama_stack.providers.remote.post_training.nvidia",
                 config_class="llama_stack.providers.remote.post_training.nvidia.NvidiaPostTrainingConfig",
                 description="NVIDIA's post-training provider for fine-tuning models on NVIDIA's platform.",
