@@ -9,7 +9,7 @@ fallback_version = "1.2.5.2"
 required-version = ">=0.7.0"
 constraint-dependencies = [
     "accelerate>=1.15.0",              # CVE-2026-69112: path traversal and DoS via weight_map
-    "aiohttp>=3.14.0",                # CVE-2026-34993: CookieJar.load() RCE
+    "aiohttp>=3.14.4",                # CVE-2026-34993: CookieJar.load() RCE
     "anyio>=4.14.2",                   # CVE-2026-63374
     "authlib>=1.6.11",                 # CVE-2026-41425 + 7 more: account takeover, JWE padding oracle, sig bypass
     "certifi>=2026.10.19",            # CVE-2026-114406: eMudhra intermediate CA key compromise
@@ -26,7 +26,7 @@ constraint-dependencies = [
     "msgpack>=1.2.1",
     "pillow>=13.0.0",                  # CVE-2026-112893 + 59 related Pillow CVEs fixed in 13.0.0
     "protobuf>=5.29.6",               # CVE-2025-4565 + CVE-2026-0994: parsing vulnerabilities
-    "pyasn1>=0.6.4",                   # CVE-2026-30922: DoS via unbounded recursion
+    "pyasn1>=0.6.5",                   # CVE-2026-30922: DoS via unbounded recursion
     "pydantic-settings>=2.14.2",
     "python-engineio>=4.13.2",
     "python-multipart>=0.0.31",        # CVE-2026-40347: header injection; CVE-2026-42561: DoS via oversized headers
@@ -86,7 +86,7 @@ dependencies = [
     "aiosqlite>=0.21.0",                              # server - for metadata store
     "asyncpg",                                        # for metadata store
     "sqlalchemy[asyncio]>=2.0.41",                    # server - for conversations
-    "mcp>=1.23.0,<2.0",                                # for connectors
+    "mcp>=1.30.0,<2.0",                                # for connectors
     "zstandard>=0.23.0",                              # server - zstd request decompression
     "models-dev>=1.0.398",
 ]
@@ -195,7 +195,7 @@ type_checking = [
     "sqlite-vec",
     "faiss-cpu",
     "lm-format-enforcer",
-    "mcp>=1.23.0,<2.0",
+    "mcp>=1.30.0,<2.0",
     "ollama",
     "langchain-openai>=1.2.2",
     "langchain-core>=0.3.85",                            # CVE-2026-44843: insecure deserialization
@@ -207,7 +207,7 @@ test-common = [
     "aiosqlite",
     "asyncpg>=0.29.0",
     "chardet",
-    "mcp>=1.23.0,<2.0",
+    "mcp>=1.30.0,<2.0",
     "pgvector>=0.3.0",
     "psycopg2-binary>=2.9.0",
     "pypdf>=6.13.3",
