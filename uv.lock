@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32'",
@@ -20,6 +20,7 @@ constraints = [
     { name = "anyio", specifier = ">=4.14.2" },
     { name = "certifi", specifier = ">=2026.10.23" },
     { name = "pyasn1", specifier = ">=0.6.4" },
+    { name = "pypdf", specifier = ">=6.18.0" },
     { name = "starlette", specifier = ">=1.3.1" },
 ]
 overrides = [{ name = "grpcio", specifier = ">=1.84.1" }]
@@ -2967,7 +2968,7 @@ requires-dist = [
     { name = "pyjwt", extras = ["crypto"], specifier = ">=2.13.0" },
     { name = "pymilvus", extras = ["milvus-lite"], marker = "extra == 'starter'", specifier = ">=2.4.10" },
     { name = "pymongo", marker = "extra == 'starter'", specifier = ">=4.18.2" },
-    { name = "pypdf", marker = "extra == 'starter'", specifier = ">=6.7.2" },
+    { name = "pypdf", marker = "extra == 'starter'", specifier = ">=6.18.0" },
     { name = "pythainlp", marker = "extra == 'starter'" },
     { name = "python-dotenv", specifier = ">=1.2.2" },
     { name = "python-multipart", specifier = ">=0.0.27" },
@@ -3054,7 +3055,7 @@ test = [
     { name = "milvus-lite", marker = "platform_machine == 'aarch64' or platform_machine == 'arm64' or platform_machine == 'x86_64'", specifier = ">=2.5.0" },
     { name = "psycopg2-binary", specifier = ">=2.9.0" },
     { name = "pymilvus", specifier = ">=2.6.2" },
-    { name = "pypdf", specifier = ">=6.7.2" },
+    { name = "pypdf", specifier = ">=6.18.0" },
     { name = "qdrant-client" },
     { name = "requests" },
     { name = "sqlalchemy" },
@@ -3081,7 +3082,7 @@ type-checking = [
     { name = "pandas-stubs" },
     { name = "peft" },
     { name = "pymongo", specifier = ">=4.18.2" },
-    { name = "pypdf", specifier = ">=6.7.2" },
+    { name = "pypdf", specifier = ">=6.18.0" },
     { name = "sqlite-vec" },
     { name = "streamlit" },
     { name = "streamlit-option-menu" },
@@ -3109,7 +3110,7 @@ unit = [
     { name = "moto", extras = ["s3"], specifier = ">=5.1.10" },
     { name = "ollama" },
     { name = "psycopg2-binary", specifier = ">=2.9.0" },
-    { name = "pypdf", specifier = ">=6.7.2" },
+    { name = "pypdf", specifier = ">=6.18.0" },
     { name = "sqlalchemy" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.41" },
     { name = "sqlite-vec" },
@@ -5219,11 +5220,11 @@ wheels = [
 
 [[package]]
 name = "pypdf"
-version = "6.7.5"
+version = "6.21.4"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/f6/52/37cc0aa9e9d1bf7729a737a0d83f8b3f851c8eb137373d9f71eafb0a3405/pypdf-6.7.5.tar.gz", hash = "sha256:40bb2e2e872078655f12b9b89e2f900888bb505e88a82150b64f9f34fa25651d", size = 5304278, upload-time = "2026-03-02T09:05:21.464Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1e/e1/ec8f4d155c997c45917153a5521e60d6ee6389d68abdcbc8e44e564caffc/pypdf-6.21.4.tar.gz", hash = "sha256:c8817e3f888d47a087872ded69812c1ef30cacb871d6e053e0c00bbaf0bc2163", size = 7109255, upload-time = "2026-10-28T17:00:54.81Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/05/89/336673efd0a88956562658aba4f0bbef7cb92a6fbcbcaf94926dbc82b408/pypdf-6.7.5-py3-none-any.whl", hash = "sha256:07ba7f1d6e6d9aa2a17f5452e320a84718d4ce863367f7ede2fd72280349ab13", size = 331421, upload-time = "2026-03-02T09:05:19.722Z" },
+    { url = "https://files.pythonhosted.org/packages/3f/4b/77e8ad4ac42c9d93600f40541a50e9feb3a61d2bbee2d76f659346072051/pypdf-6.21.4-py3-none-any.whl", hash = "sha256:33e4fb41ca352810eb4e9838aa0d82d6888a5f8bf682f43e99cce5faa666255c", size = 410430, upload-time = "2026-10-28T17:00:53.146Z" },
 ]
 
 [[package]]
