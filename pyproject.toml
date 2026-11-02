@@ -25,6 +25,7 @@ constraint-dependencies = [
     "lxml>=6.1.1",                     # Multiple CVEs
     "msgpack>=1.2.1",
     "pillow>=13.0.0",                  # CVE-2026-112893 + 59 related Pillow CVEs fixed in 13.0.0
+    "pypdf>=6.18.0",                   # CVE-2026-102994, CVE-2026-102999: DoS vulnerabilities
     "protobuf>=5.29.6",               # CVE-2025-4565 + CVE-2026-0994: parsing vulnerabilities
     "pyasn1>=0.6.4",                   # CVE-2026-30922: DoS via unbounded recursion
     "pydantic-settings>=2.14.2",
@@ -124,7 +125,7 @@ starter = [
     "pgvector>=0.3.0",
     "pymilvus[milvus-lite]>=2.4.10",
     "pymongo>=4.18.2",                         # CVE-2026-88029: query-operator injection
-    "pypdf>=6.13.3",
+    "pypdf>=6.18.0",
     "pythainlp",
     "qdrant-client",
     "redis>=8.0.0",
@@ -172,7 +173,7 @@ type_checking = [
     "types-setuptools",
     "types-jsonschema",
     "markitdown[all]",
-    "pypdf>=6.13.3",
+    "pypdf>=6.18.0",
     "pandas-stubs",
     "types-psutil>=7.2.2.20260518",
     "types-tqdm",
@@ -210,7 +211,7 @@ test-common = [
     "mcp>=1.23.0,<2.0",
     "pgvector>=0.3.0",
     "psycopg2-binary>=2.9.0",
-    "pypdf>=6.13.3",
+    "pypdf>=6.18.0",
     "sqlalchemy[asyncio]>=2.0.41",
 ]
 # These are the dependencies required for running unit tests.
