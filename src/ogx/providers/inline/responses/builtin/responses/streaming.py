@@ -14,6 +14,7 @@ from openai.types.chat import ChatCompletionToolParam
 from opentelemetry import trace
 
 from ogx.log import get_logger
+from ogx.providers.utils.common.url_validation import validate_url_not_private
 from ogx.providers.utils.inference.openai_compat import convert_tooldef_to_openai_tool
 from ogx.providers.utils.inference.prompt_adapter import interleaved_content_as_str
 from ogx.providers.utils.tools.mcp import list_mcp_tools
@@ -1671,6 +1672,9 @@ class StreamingResponseOrchestrator:
         # Resolve connector_id to server_url if provided
         if self.connectors_api is not None:
             mcp_tool = await resolve_mcp_connector_id(mcp_tool, self.connectors_api)
+
+        if mcp_tool.server_url:
+            validate_url_not_private(mcp_tool.server_url)
 
         # Emit mcp_list_tools.in_progress
         self.sequence_number += 1
