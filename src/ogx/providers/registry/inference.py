@@ -65,7 +65,7 @@ def available_providers() -> list[ProviderSpec]:
             api=Api.inference,
             adapter_type="ollama",
             provider_type="remote::ollama",
-            pip_packages=["ollama", "aiohttp", "h11>=0.16.0"],
+            pip_packages=["ollama", "aiohttp>=3.14.4", "h11>=0.16.0"],
             config_class="ogx.providers.remote.inference.ollama.OllamaImplConfig",
             module="ogx.providers.remote.inference.ollama",
             description="Ollama inference provider for running local models through the Ollama runtime.",
