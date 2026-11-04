@@ -1,13 +1,14 @@
 name: Create release tag
 
-run-name: Create tag from version in pyproject.toml
+run-name: Create ${{ inputs.tag }} on ${{ github.ref_name }}
 
 on:
-  push:
-    branches:
-      - "release-*"
-    paths:
-      - "pyproject.toml"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to create (e.g., v1.5.1+rhaiv.0)"
+        required: true
+        type: string
 
 permissions: {}
 
@@ -16,66 +17,113 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      TAG: ${{ inputs.tag }}
+      RELEASE_BRANCH: ${{ github.ref_name }}
+      REF_TYPE: ${{ github.ref_type }}
     steps:
-      - name: Checkout repository
+      - name: Validate release branch
+        run: |
+          if [[ "${REF_TYPE}" != "branch" || ! "${RELEASE_BRANCH}" =~ ^release-[0-9]+\.[0-9]+(-ea\.[0-9]+)?$ ]]; then
+            echo "::error::Failed to validate release branch '${RELEASE_BRANCH}'. Expected format: release-<major>.<minor> or release-<major>.<minor>-ea.<N> (e.g., release-3.4)"
+            exit 1
+          fi
+          echo "Release branch '${RELEASE_BRANCH}' is valid"
+
+      - name: Validate tag format
+        run: |
+          if [[ ! "${TAG}" =~ ^v([0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?)\+rhaiv\.[0-9]+$ ]]; then
+            echo "::error::Failed to validate tag '${TAG}'. Expected format: v<major>.<minor>.<patch>[.<revision>]+rhaiv.<N> (e.g., v1.5.1+rhaiv.0)"
+            exit 1
+          fi
+          echo "Tag '${TAG}' is valid"
+
+      - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          persist-credentials: false
+          ref: ${{ github.ref }}
+          token: ${{ secrets.RELEASE_TOKEN }}
+          fetch-depth: 0
+          persist-credentials: true
 
-      - name: Extract project version from pyproject.toml
-        id: extract-project-version
+      - name: Configure git user
         run: |
-          PROJECT_VERSION=$(python3 -c '
-          import sys, tomllib
-
-          with open("pyproject.toml", "rb") as f:
-              data = tomllib.load(f)
-
-          project = data.get("project", {})
-
-          if "version" in project.get("dynamic", []):
-              print("version is listed in [project.dynamic] -- it must be set to a fixed value on release branches", file=sys.stderr)
-              sys.exit(1)
-
-          version = project.get("version")
-          if not version:
-              print("No version field found in [project] section of pyproject.toml", file=sys.stderr)
-              sys.exit(1)
-
-          print(version)
-          ')
-
-          if ! echo "${PROJECT_VERSION}" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?(\+rhaiv\.[0-9]+)?$'; then
-            echo "::error::Invalid version format: ${PROJECT_VERSION}"
-            exit 1
-          fi
-
-          echo "project-version=${PROJECT_VERSION}" >> "$GITHUB_OUTPUT"
-          echo "Extracted project version: ${PROJECT_VERSION}"
-
-      - name: Configure git credentials
-        env:
-          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-        run: |
-          git remote set-url origin "https://x-access-token:${RELEASE_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Check if tag already exists
-        id: check
         env:
-          TAG: v${{ steps.extract-project-version.outputs.project-version }}
+          TAG: ${{ inputs.tag }}
         run: |
-          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" > /dev/null 2>&1; then
-            echo "::error::Tag ${TAG} already exists"
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" > /dev/null; then
+            echo "::error::Failed to create tag ${TAG}: it already exists"
             exit 1
+          else
+            status=$?
+            if [[ "${status}" -ne 2 ]]; then
+              echo "::error::Failed to check whether tag ${TAG} exists (git ls-remote exited with ${status})"
+              exit "${status}"
+            fi
           fi
           echo "Tag ${TAG} does not exist -- proceeding"
-          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
-      - name: Create and push tag
-        id: create-tag
+      - name: Calculate project version
+        id: calculate-project-version
+        run: |
+          PROJECT_VERSION="${TAG#v}"
+          echo "project_version=${PROJECT_VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "Project version is '${PROJECT_VERSION}'"
+
+      - name: Update pyproject.toml files with pinned version
         env:
-          TAG: ${{ steps.check.outputs.tag }}
+          PROJECT_VERSION: ${{ steps.calculate-project-version.outputs.project_version }}
+        run: |
+          # Replace the dynamic version on the first run and update the pinned version on later runs.
+          for pyproject in pyproject.toml src/ogx_api/pyproject.toml; do
+            [ -f "${pyproject}" ] || continue
+            sed -i 's/^dynamic = \["version"\]/version = "'"${PROJECT_VERSION}"'"/' "${pyproject}"
+            sed -i '/^\[project\]$/,/^\[/{s/^version = ".*"/version = "'"${PROJECT_VERSION}"'"/}' "${pyproject}"
+          done
+
+      - name: Verify pyproject.toml files were updated
+        env:
+          PROJECT_VERSION: ${{ steps.calculate-project-version.outputs.project_version }}
+        run: |
+          for pyproject in pyproject.toml src/ogx_api/pyproject.toml; do
+            [ -f "${pyproject}" ] || continue
+            if ! grep -q "^version = \"${PROJECT_VERSION}\"" "${pyproject}"; then
+              echo "::error::Failed to update ${pyproject}. Expected line 'version = \"${PROJECT_VERSION}\"' was not found"
+              exit 1
+            fi
+            echo "${pyproject} updated: version = \"${PROJECT_VERSION}\""
+          done
+
+      - name: Commit version change
+        env:
+          PROJECT_VERSION: ${{ steps.calculate-project-version.outputs.project_version }}
+        run: |
+          git add pyproject.toml
+          if [ -f src/ogx_api/pyproject.toml ]; then
+            git add src/ogx_api/pyproject.toml
+          fi
+          if git diff --cached --quiet; then
+            echo "Version already set to ${PROJECT_VERSION}, skipping commit"
+          else
+            git commit -s -m "chore: set project version to ${PROJECT_VERSION}."
+          fi
+
+      - name: Create tag
+        env:
+          TAG: ${{ inputs.tag }}
         run: |
           git tag "${TAG}"
-          git push origin "${TAG}"
-          echo "Successfully created and pushed tag ${TAG}"
+          echo "Created tag ${TAG} at $(git rev-parse HEAD)"
+
+      - name: Push release branch and tag
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          git push --atomic origin \
+            "HEAD:refs/heads/${RELEASE_BRANCH}" \
+            "refs/tags/${TAG}"
+          echo "Successfully pushed ${RELEASE_BRANCH} and ${TAG}"
