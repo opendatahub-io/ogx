@@ -65,7 +65,7 @@ def available_providers() -> list[ProviderSpec]:
             api=Api.inference,
             adapter=AdapterSpec(
                 adapter_type="ollama",
-                pip_packages=["ollama", "aiohttp", "h11>=0.16.0"],
+                pip_packages=["ollama", "aiohttp>=3.14.4", "h11>=0.16.0"],
                 config_class="llama_stack.providers.remote.inference.ollama.OllamaImplConfig",
                 module="llama_stack.providers.remote.inference.ollama",
                 description="Ollama inference provider for running local models through the Ollama runtime.",
@@ -85,7 +85,7 @@ def available_providers() -> list[ProviderSpec]:
             api=Api.inference,
             adapter=AdapterSpec(
                 adapter_type="tgi",
-                pip_packages=["huggingface_hub", "aiohttp"],
+                pip_packages=["huggingface_hub", "aiohttp>=3.14.4"],
                 module="llama_stack.providers.remote.inference.tgi",
                 config_class="llama_stack.providers.remote.inference.tgi.TGIImplConfig",
                 description="Text Generation Inference (TGI) provider for HuggingFace model serving.",
@@ -95,7 +95,7 @@ def available_providers() -> list[ProviderSpec]:
             api=Api.inference,
             adapter=AdapterSpec(
                 adapter_type="hf::serverless",
-                pip_packages=["huggingface_hub", "aiohttp"],
+                pip_packages=["huggingface_hub", "aiohttp>=3.14.4"],
                 module="llama_stack.providers.remote.inference.tgi",
                 config_class="llama_stack.providers.remote.inference.tgi.InferenceAPIImplConfig",
                 description="HuggingFace Inference API serverless provider for on-demand model inference.",
@@ -105,7 +105,7 @@ def available_providers() -> list[ProviderSpec]:
             api=Api.inference,
             adapter=AdapterSpec(
                 adapter_type="hf::endpoint",
-                pip_packages=["huggingface_hub", "aiohttp"],
+                pip_packages=["huggingface_hub", "aiohttp>=3.14.4"],
                 module="llama_stack.providers.remote.inference.tgi",
                 config_class="llama_stack.providers.remote.inference.tgi.InferenceEndpointImplConfig",
                 description="HuggingFace Inference Endpoints provider for dedicated model serving.",
