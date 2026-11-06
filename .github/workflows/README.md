@@ -25,7 +25,7 @@ OGX uses GitHub Actions for Continuous Integration (CI). Below is a table detail
 | Launch GPU EC2 Runner | [launch-gpu-ec2-runner.yml](launch-gpu-ec2-runner.yml) | GPU recording for gpt-oss:20b (${{ inputs.suite }} suite) |
 | Praxis Migration E2E | [migration-e2e-praxis.yml](migration-e2e-praxis.yml) | End-to-end OGX->Praxis migration against real Postgres + Praxis |
 | Create or Update Release Branch | [odh-create-or-update-release-branch.yml](odh-create-or-update-release-branch.yml) | Create or update release-${{ inputs.product_version }} from tag ${{ inputs.tag }} |
-| Create release tag | [odh-create-tag.yml](odh-create-tag.yml) | Create tag from version in pyproject.toml |
+| Create release tag | [odh-create-tag.yml](odh-create-tag.yml) | Pin the project version on an ODH release branch and create its tag |
 | Dispatch Version Update to ODH Distribution | [odh-dispatch-version-update-to-odh-distribution.yml](odh-dispatch-version-update-to-odh-distribution.yml) | Dispatch version update to ogx-distribution (${{ github.ref_name }}) |
 | OpenAPI Generator SDK Validation | [openapi-generator-validation.yml](openapi-generator-validation.yml) | Validate OpenAPI Generator SDK generation |
 | OpenResponses Conformance Tests | [openresponses-conformance.yml](openresponses-conformance.yml) | Run OpenResponses conformance tests against ogx Responses API |
