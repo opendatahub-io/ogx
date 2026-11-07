@@ -9,6 +9,7 @@ constraint-dependencies = [
     "botocore>=1.43.117",              # CVE-2026-114406: eMudhra CA distrust in bundled cacert.pem
     "certifi>=2026.10.23",            # CVE-2026-114406: removes distrusted eMudhra CAs
     "pypdf>=6.18.0",                   # CVE-2026-102994, CVE-2026-102999: DoS vulnerabilities
+    "fsspec>=2026.6.0",                # CVE-2026-104851: arbitrary code execution via crafted reference documents
 ]
 override-dependencies = [
     "grpcio>=1.84.1",                 # CVE-2026-114406: updated roots.pem removes distrusted eMudhra CAs (override weaviate-client's <1.80.0 cap)
