@@ -372,7 +372,7 @@ async def mock_jwks_response(*args, **kwargs):
 
 @pytest.fixture
 def jwt_token_valid():
-    from jose import jwt
+    import jwt
 
     return jwt.encode(
         {
