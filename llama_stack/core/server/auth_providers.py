@@ -11,7 +11,7 @@ from asyncio import Lock
 from urllib.parse import parse_qs, urljoin, urlparse
 
 import httpx
-from jose import jwt
+import jwt
 from pydantic import BaseModel, Field
 
 from llama_stack.apis.common.errors import TokenValidationError
@@ -120,9 +120,10 @@ class OAuth2TokenAuthProvider(AuthProvider):
                 raise ValueError(f"Unknown key ID: {kid}")
             key_data = self._jwks[kid]
             algorithm = header.get("alg", "RS256")
+            signing_key = jwt.PyJWK(key_data, algorithm=algorithm).key
             claims = jwt.decode(
                 token,
-                key_data,
+                signing_key,
                 algorithms=[algorithm],
                 audience=self.config.audience,
                 issuer=self.config.issuer,
