@@ -123,7 +123,7 @@ starter = [
     "numpy",
     "ollama",
     "pandas",
-    "pillow",
+    "pillow>=13.0.0",
     "pgvector>=0.3.0",
     "pymilvus[milvus-lite]>=2.4.10",
     "pymongo>=4.18.2",                         # CVE-2026-88029: query-operator injection

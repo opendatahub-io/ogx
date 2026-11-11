@@ -26,7 +26,7 @@ def available_providers() -> list[ProviderSpec]:
             pip_packages=[
                 "matplotlib",
                 "fonttools>=4.60.2",
-                "pillow",
+                "pillow>=13.0.0",
                 "pandas",
                 "scikit-learn",
                 "mcp>=1.30.0,<2.0",
