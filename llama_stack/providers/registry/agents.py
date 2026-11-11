@@ -20,7 +20,7 @@ def available_providers() -> list[ProviderSpec]:
             provider_type="inline::meta-reference",
             pip_packages=[
                 "matplotlib",
-                "pillow>=12.2.0",
+                "pillow>=13.0.0",
                 "pandas",
                 "scikit-learn",
                 "mcp>=1.30.0,<2.0",
