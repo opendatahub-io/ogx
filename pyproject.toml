@@ -48,7 +48,7 @@ override-dependencies = [
 
 [project]
 name = "ogx"
-version = "1.2.5.2+rhaiv.1"
+version = "1.2.5.3+rhaiv.0"
 authors = [{ name = "The OGX Contributors", email = "contributors@ogx.dev" }]
 description = "Open-source, OpenAI-compatible API server with pluggable providers for any model and any infrastructure"
 readme = "README.md"
@@ -123,7 +123,7 @@ starter = [
     "numpy",
     "ollama",
     "pandas",
-    "pillow",
+    "pillow>=13.0.0",
     "pgvector>=0.3.0",
     "pymilvus[milvus-lite]>=2.4.10",
     "pymongo>=4.18.2",                         # CVE-2026-88029: query-operator injection
