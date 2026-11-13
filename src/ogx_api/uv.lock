@@ -368,7 +368,7 @@ wheels = [
 
 [[package]]
 name = "ogx-api"
-version = "1.2.5.2+rhaiv.1"
+version = "1.2.5.4+rhaiv.0"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
