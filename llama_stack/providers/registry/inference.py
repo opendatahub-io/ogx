@@ -181,7 +181,7 @@ def available_providers() -> list[ProviderSpec]:
             api=Api.inference,
             adapter=AdapterSpec(
                 adapter_type="openai",
-                pip_packages=["litellm"],
+                pip_packages=["litellm>=1.103.1"],
                 module="llama_stack.providers.remote.inference.openai",
                 config_class="llama_stack.providers.remote.inference.openai.OpenAIConfig",
                 provider_data_validator="llama_stack.providers.remote.inference.openai.config.OpenAIProviderDataValidator",
@@ -192,7 +192,7 @@ def available_providers() -> list[ProviderSpec]:
             api=Api.inference,
             adapter=AdapterSpec(
                 adapter_type="anthropic",
-                pip_packages=["litellm"],
+                pip_packages=["litellm>=1.103.1"],
                 module="llama_stack.providers.remote.inference.anthropic",
                 config_class="llama_stack.providers.remote.inference.anthropic.AnthropicConfig",
                 provider_data_validator="llama_stack.providers.remote.inference.anthropic.config.AnthropicProviderDataValidator",
@@ -203,7 +203,7 @@ def available_providers() -> list[ProviderSpec]:
             api=Api.inference,
             adapter=AdapterSpec(
                 adapter_type="gemini",
-                pip_packages=["litellm"],
+                pip_packages=["litellm>=1.103.1"],
                 module="llama_stack.providers.remote.inference.gemini",
                 config_class="llama_stack.providers.remote.inference.gemini.GeminiConfig",
                 provider_data_validator="llama_stack.providers.remote.inference.gemini.config.GeminiProviderDataValidator",
@@ -214,7 +214,7 @@ def available_providers() -> list[ProviderSpec]:
             api=Api.inference,
             adapter=AdapterSpec(
                 adapter_type="vertexai",
-                pip_packages=["litellm", "google-cloud-aiplatform"],
+                pip_packages=["litellm>=1.103.1", "google-cloud-aiplatform"],
                 module="llama_stack.providers.remote.inference.vertexai",
                 config_class="llama_stack.providers.remote.inference.vertexai.VertexAIConfig",
                 provider_data_validator="llama_stack.providers.remote.inference.vertexai.config.VertexAIProviderDataValidator",
@@ -244,7 +244,7 @@ Available Models:
             api=Api.inference,
             adapter=AdapterSpec(
                 adapter_type="groq",
-                pip_packages=["litellm"],
+                pip_packages=["litellm>=1.103.1"],
                 module="llama_stack.providers.remote.inference.groq",
                 config_class="llama_stack.providers.remote.inference.groq.GroqConfig",
                 provider_data_validator="llama_stack.providers.remote.inference.groq.config.GroqProviderDataValidator",
@@ -255,7 +255,7 @@ Available Models:
             api=Api.inference,
             adapter=AdapterSpec(
                 adapter_type="llama-openai-compat",
-                pip_packages=["litellm"],
+                pip_packages=["litellm>=1.103.1"],
                 module="llama_stack.providers.remote.inference.llama_openai_compat",
                 config_class="llama_stack.providers.remote.inference.llama_openai_compat.config.LlamaCompatConfig",
                 provider_data_validator="llama_stack.providers.remote.inference.llama_openai_compat.config.LlamaProviderDataValidator",
@@ -266,7 +266,7 @@ Available Models:
             api=Api.inference,
             adapter=AdapterSpec(
                 adapter_type="sambanova",
-                pip_packages=["litellm"],
+                pip_packages=["litellm>=1.103.1"],
                 module="llama_stack.providers.remote.inference.sambanova",
                 config_class="llama_stack.providers.remote.inference.sambanova.SambaNovaImplConfig",
                 provider_data_validator="llama_stack.providers.remote.inference.sambanova.config.SambaNovaProviderDataValidator",
@@ -299,7 +299,7 @@ Available Models:
             api=Api.inference,
             adapter=AdapterSpec(
                 adapter_type="azure",
-                pip_packages=["litellm"],
+                pip_packages=["litellm>=1.103.1"],
                 module="llama_stack.providers.remote.inference.azure",
                 config_class="llama_stack.providers.remote.inference.azure.AzureConfig",
                 provider_data_validator="llama_stack.providers.remote.inference.azure.config.AzureProviderDataValidator",
